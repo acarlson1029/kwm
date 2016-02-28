@@ -101,20 +101,28 @@ void CreateNodeContainer(screen_info *Screen, tree_node *Node, const container_t
     Node->Container.Type = ContainerType;
 }
 
-void CreateNodeContainerPair(screen_info *Screen, tree_node *LeftNode, tree_node *RightNode, int SplitMode)
+void CreateNodeContainerPair(screen_info *Screen, tree_node *LeftNode, tree_node *RightNode, const split_mode &SplitMode)
 {
     Assert(LeftNode, "CreateNodeContainerPair() Left Node")
     Assert(RightNode, "CreateNodeContainerPair() Right Node")
 
-    if(SplitMode == 1)
+    switch(SplitMode)
     {
-        CreateNodeContainer(Screen, LeftNode, ContainerLeft);
-        CreateNodeContainer(Screen, RightNode, ContainerRight);
-    }
-    else
-    {
-        CreateNodeContainer(Screen, LeftNode, ContainerUpper);
-        CreateNodeContainer(Screen, RightNode, ContainerLower);
+        case SplitModeVertical:
+        {
+            CreateNodeContainer(Screen, LeftNode, ContainerLeft);
+            CreateNodeContainer(Screen, RightNode, ContainerRight);
+        } break;
+        case SplitModeHorizontal:
+        {
+            CreateNodeContainer(Screen, LeftNode, ContainerUpper);
+            CreateNodeContainer(Screen, RightNode, ContainerLower);
+        } break;
+        default:
+        {
+            DEBUG("CreateNodeContainerPair() Invalid SplitMode given: " << SplitMode)
+        } break;
+
     }
 }
 
@@ -148,7 +156,7 @@ tree_node *CreateRootNode()
     RootNode->LeftChild = NULL;
     RootNode->RightChild = NULL;
     RootNode->SplitRatio = KWMScreen.SplitRatio;
-    RootNode->SplitMode = 0;
+    RootNode->SplitMode = SplitModeUnset;
 
     return RootNode;
 }
@@ -168,7 +176,7 @@ void SetRootNodeContainer(screen_info *Screen, tree_node *Node)
     Node->Container.Type = ContainerRoot;
 }
 
-void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowID, int SecondWindowID, int SplitMode)
+void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowID, int SecondWindowID, const split_mode &SplitMode)
 {
     Assert(Parent, "CreateLeafNodePair()")
 
@@ -179,22 +187,29 @@ void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowI
     int LeftWindowID = KWMTiling.SpawnAsLeftChild ? SecondWindowID : FirstWindowID;
     int RightWindowID = KWMTiling.SpawnAsLeftChild ? FirstWindowID : SecondWindowID;
 
-    if(SplitMode == 1)
+    switch(SplitMode)
     {
-        Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftWindowID, ContainerLeft);
-        Parent->RightChild = CreateLeafNode(Screen, Parent, RightWindowID, ContainerRight);
-    }
-    else if(SplitMode == 2)
-    {
-        Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftWindowID, ContainerUpper);
-        Parent->RightChild = CreateLeafNode(Screen, Parent, RightWindowID, ContainerLower);
-    }
-    else
-    {
-        Parent->Parent = NULL;
-        Parent->LeftChild = NULL;
-        Parent->RightChild = NULL;
-        Parent = NULL;
+        case SplitModeVertical:
+        {
+            Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftWindowID, ContainerLeft);
+            Parent->RightChild = CreateLeafNode(Screen, Parent, RightWindowID, ContainerRight);
+        } break;
+        case SplitModeHorizontal:
+        {
+            Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftWindowID, ContainerUpper);
+            Parent->RightChild = CreateLeafNode(Screen, Parent, RightWindowID, ContainerLower);
+        } break;
+        case SplitModeOptimal:
+        {
+            Parent->Parent = NULL;
+            Parent->LeftChild = NULL;
+            Parent->RightChild = NULL;
+            Parent = NULL;
+        } break;
+        default:
+        {
+            DEBUG("CreateLeafNodePair() Invalid SplitMode given: " << SplitMode)
+        } break;
     }
 }
 
@@ -351,9 +366,9 @@ bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, std::vector<win
     return Result;
 }
 
-int GetOptimalSplitMode(tree_node *Node)
+split_mode GetOptimalSplitMode(tree_node *Node)
 {
-    return (Node->Container.Width / Node->Container.Height) >= 1.618 ? 1 : 2;
+    return (Node->Container.Width / Node->Container.Height) >= 1.618 ? SplitModeVertical : SplitModeHorizontal;
 }
 
 void ChangeSplitRatio(double Value)
@@ -503,7 +518,7 @@ void ToggleNodeSplitMode(screen_info *Screen, tree_node *Node)
     if(!Node || IsLeafNode(Node))
         return;
 
-    Node->SplitMode = Node->SplitMode == 1 ? 2 : 1;
+    Node->SplitMode = Node->SplitMode == SplitModeVertical ? SplitModeHorizontal : SplitModeVertical;
     CreateNodeContainers(Screen, Node, false);
     ApplyNodeContainer(Node, SpaceModeBSP);
 }
@@ -545,8 +560,8 @@ void RotateTree(tree_node *Node, int Deg)
 
     DEBUG("RotateTree() " << Deg << " degrees")
 
-    if((Deg == 90 && Node->SplitMode == 1) ||
-       (Deg == 270 && Node->SplitMode == 2) ||
+    if((Deg == 90 && Node->SplitMode == SplitModeVertical) ||
+       (Deg == 270 && Node->SplitMode == SplitModeHorizontal) ||
        Deg == 180)
     {
         tree_node *Temp = Node->LeftChild;
@@ -556,7 +571,7 @@ void RotateTree(tree_node *Node, int Deg)
     }
 
     if(Deg != 180)
-        Node->SplitMode = Node->SplitMode == 2 ? 1 : 2;
+        Node->SplitMode = Node->SplitMode == SplitModeHorizontal ? SplitModeVertical : SplitModeHorizontal;
 
     RotateTree(Node->LeftChild, Deg);
     RotateTree(Node->RightChild, Deg);
@@ -564,13 +579,24 @@ void RotateTree(tree_node *Node, int Deg)
 
 void CreateDeserializedNodeContainer(tree_node *Node)
 {
-    int SplitMode = Node->Parent->SplitMode;
+    split_mode SplitMode = Node->Parent->SplitMode;
     container_type ContainerType;
 
-    if(SplitMode == 1)
-        ContainerType = IsLeftChild(Node) ? ContainerLeft : ContainerRight;
-    else
-        ContainerType = IsLeftChild(Node) ? ContainerUpper : ContainerLower;
+    switch(SplitMode)
+    {
+        case SplitModeHorizontal:
+        {
+            ContainerType = IsLeftChild(Node) ? ContainerLeft : ContainerRight;
+        } break;
+        case SplitModeVertical:
+        {
+            ContainerType = IsLeftChild(Node) ? ContainerUpper : ContainerLower;
+        } break;
+        default:
+        {
+            DEBUG("CreateDeserializedNodeContainer() Invalid SplitMode given: " << SplitMode)
+        } break;
+    }
 
     CreateNodeContainer(KWMScreen.Current, Node, ContainerType);
 }
@@ -649,7 +675,7 @@ unsigned int DeserializeParentNode(tree_node *Parent, std::vector<std::string> &
 
         if(Tokens[2] == "split-mode")
         {
-            Parent->SplitMode = ConvertStringToInt(Tokens[3]);
+            Parent->SplitMode = static_cast<split_mode>(ConvertStringToInt(Tokens[3]));
             DEBUG("Root: SplitMode Found " + Tokens[3])
         }
         else if(Tokens[2] == "split-ratio")

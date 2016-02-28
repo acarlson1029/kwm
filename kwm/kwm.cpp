@@ -232,7 +232,7 @@ void KwmInit()
     signal(SIGTRAP, SignalHandler);
 
     KWMScreen.SplitRatio = 0.5;
-    KWMScreen.SplitMode = -1;
+    KWMScreen.SplitMode = SplitModeOptimal;
     KWMScreen.MarkedWindow = -1;
     KWMScreen.PrevSpace = -1;
     KWMScreen.DefaultOffset = CreateDefaultScreenOffset();

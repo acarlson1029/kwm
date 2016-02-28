@@ -118,6 +118,14 @@ enum container_type
     ContainerLower
 };
 
+enum split_mode
+{
+    SplitModeOptimal=-1,
+    SplitModeUnset,
+    SplitModeVertical,
+    SplitModeHorizontal,
+};
+
 struct modifiers
 {
     bool CmdKey;
@@ -171,7 +179,7 @@ struct tree_node
     tree_node *LeftChild;
     tree_node *RightChild;
 
-    int SplitMode;
+    split_mode SplitMode;
     double SplitRatio;
 };
 
@@ -290,7 +298,7 @@ struct kwm_screen
     double SplitRatio;
 
     int MarkedWindow;
-    int SplitMode;
+    split_mode SplitMode;
     int PrevSpace;
 
     container_offset DefaultOffset;

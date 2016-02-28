@@ -283,11 +283,11 @@ void KwmReadCommand(std::vector<std::string> &Tokens, int ClientSockFD)
         std::string Output;
         if(Tokens[2] == "global")
         {
-            if(KWMScreen.SplitMode == -1)
+            if(KWMScreen.SplitMode == SplitModeOptimal)
                 Output = "Optimal";
-            else if(KWMScreen.SplitMode == 1)
+            else if(KWMScreen.SplitMode == SplitModeVertical)
                 Output = "Vertical";
-            else if(KWMScreen.SplitMode == 2)
+            else if(KWMScreen.SplitMode == SplitModeHorizontal)
                 Output = "Horizontal";
         }
         else
@@ -299,9 +299,9 @@ void KwmReadCommand(std::vector<std::string> &Tokens, int ClientSockFD)
                 tree_node *Node = GetNodeFromWindowID(Space->RootNode, WindowID, Space->Mode);
                 if(Node)
                 {
-                    if(Node->SplitMode == 1)
+                    if(Node->SplitMode == SplitModeVertical)
                         Output = "Vertical";
-                    else if(Node->SplitMode == 2)
+                    else if(Node->SplitMode == SplitModeHorizontal)
                         Output = "Horizontal";
                 }
             }
@@ -606,11 +606,11 @@ void KwmScreenCommand(std::vector<std::string> &Tokens)
     else if(Tokens[1] == "-s")
     {
         if(Tokens[2] == "optimal")
-            KWMScreen.SplitMode = -1;
+            KWMScreen.SplitMode = SplitModeOptimal;
         else if(Tokens[2] == "vertical")
-            KWMScreen.SplitMode = 1;
+            KWMScreen.SplitMode = SplitModeVertical;
         else if(Tokens[2] == "horizontal")
-            KWMScreen.SplitMode = 2;
+            KWMScreen.SplitMode = SplitModeHorizontal;
     }
     else if(Tokens[1] == "-m")
     {
