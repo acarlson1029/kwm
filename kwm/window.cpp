@@ -1513,10 +1513,10 @@ void ModifyContainerSplitRatio(double Offset)
         tree_node *Node = GetNodeFromWindowID(Root, KWMFocus.Window->WID, Space->Mode);
         if(Node && Node->Parent)
         {
-            if(Node->Parent->SplitRatio + Offset > 0.0 &&
-               Node->Parent->SplitRatio + Offset < 1.0)
+            if(Node->Parent->Container.SplitRatio + Offset > 0.0 &&
+               Node->Parent->Container.SplitRatio + Offset < 1.0)
             {
-                Node->Parent->SplitRatio += Offset;
+                Node->Parent->Container.SplitRatio += Offset;
                 ResizeNodeContainer(KWMScreen.Current, Node->Parent);
                 ApplyNodeContainer(Node->Parent, Space->Mode);
             }

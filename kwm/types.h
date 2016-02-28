@@ -169,6 +169,8 @@ struct node_container
     double X, Y;
     double Width, Height;
     container_type Type;
+    split_mode SplitMode;
+    double SplitRatio;
 };
 
 struct tree_node
@@ -178,9 +180,6 @@ struct tree_node
     tree_node *Parent;
     tree_node *LeftChild;
     tree_node *RightChild;
-
-    split_mode SplitMode;
-    double SplitRatio;
 };
 
 struct window_info

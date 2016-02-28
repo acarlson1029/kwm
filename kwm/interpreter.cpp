@@ -299,9 +299,9 @@ void KwmReadCommand(std::vector<std::string> &Tokens, int ClientSockFD)
                 tree_node *Node = GetNodeFromWindowID(Space->RootNode, WindowID, Space->Mode);
                 if(Node)
                 {
-                    if(Node->SplitMode == SplitModeVertical)
+                    if(Node->Container.SplitMode == SplitModeVertical)
                         Output = "Vertical";
-                    else if(Node->SplitMode == SplitModeHorizontal)
+                    else if(Node->Container.SplitMode == SplitModeHorizontal)
                         Output = "Horizontal";
                 }
             }
