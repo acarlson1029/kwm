@@ -233,7 +233,7 @@ void KwmInit()
 
     KWMScreen.SplitRatio = 0.5;
     KWMScreen.SplitMode = -1;
-    KWMScreen.MarkedWindow = -1;
+    KWMScreen.MarkedWindow = NULL;
     KWMScreen.PrevSpace = -1;
     KWMScreen.DefaultOffset = CreateDefaultScreenOffset();
     KWMScreen.MaxCount = 5;

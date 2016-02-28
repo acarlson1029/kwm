@@ -72,7 +72,7 @@ void UpdateBorder(std::string BorderType)
     }
     else if(BorderType == "marked")
     {
-        WindowID = KWMScreen.MarkedWindow;
+        WindowID = KWMScreen.MarkedWindow->WID;
         Border = &MarkedBorder;
     }
 

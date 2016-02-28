@@ -253,7 +253,7 @@ void KwmReadCommand(std::vector<std::string> &Tokens, int ClientSockFD)
     }
     else if(Tokens[1] == "marked")
     {
-        std::string Output = std::to_string(KWMScreen.MarkedWindow);;
+        std::string Output = std::to_string(KWMScreen.MarkedWindow->WID);;
         KwmWriteToSocket(ClientSockFD, Output);
     }
     else if(Tokens[1] == "tag")
@@ -526,7 +526,7 @@ void KwmWindowCommand(std::vector<std::string> &Tokens)
         else if(Tokens[2] == "west")
             DetachAndReinsertWindow(KWMFocus.Window->WID, 270);
         else if(Tokens[2] == "mark")
-            DetachAndReinsertWindow(KWMScreen.MarkedWindow, 0);
+            DetachAndReinsertWindow(KWMScreen.MarkedWindow->WID, 0);
     }
 }
 

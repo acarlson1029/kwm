@@ -17,37 +17,37 @@ void GetTagForMonocleSpace(space_info *Space, std::string &Tag)
     tree_node *Node = Space->RootNode;
     bool FoundFocusedWindow = false;
     int FocusedIndex = 0;
-    int NumberOfWindows = 0;
+    int NumberOfNodes = 0;
 
     if(Node && KWMFocus.Window)
     {
         FocusedIndex = 1;
-        NumberOfWindows = 1;
+        NumberOfNodes = 1;
 
-        if(Node->WindowID == KWMFocus.Window->WID)
+        if(IsWindowInNode(KWMFocus.Window, Node)) 
             FoundFocusedWindow = true;
 
         while(Node->RightChild)
         {
-            if(Node->WindowID == KWMFocus.Window->WID)
+            if(IsWindowInNode(KWMFocus.Window, Node)) 
                 FoundFocusedWindow = true;
 
             if(!FoundFocusedWindow)
                 ++FocusedIndex;
 
-            ++NumberOfWindows;
+            ++NumberOfNodes;
 
             Node = Node->RightChild;
         }
 
-        if(Node->WindowID == KWMFocus.Window->WID)
+        if(IsWindowInNode(KWMFocus.Window, Node)) 
             FoundFocusedWindow = true;
     }
 
     if(FoundFocusedWindow)
-        Tag = "[" + std::to_string(FocusedIndex) + "/" + std::to_string(NumberOfWindows) + "]";
+        Tag = "[" + std::to_string(FocusedIndex) + "/" + std::to_string(NumberOfNodes) + "]";
     else
-        Tag = "[" + std::to_string(NumberOfWindows) + "]";
+        Tag = "[" + std::to_string(NumberOfNodes) + "]";
 }
 
 void GetTagForCurrentSpace(std::string &Tag)
