@@ -109,6 +109,24 @@ enum hotkey_state
     HotkeyStateExclude
 };
 
+enum container_type
+{
+    // TODO: replace Unset and use = NULL for initialization
+    ContainerUnset,
+    LeftVertical,
+    RightVertical,
+    UpperHorizontal,
+    LowerHorizontal
+};
+
+enum split_mode
+{
+    // TODO: replace Unset and use = NULL for initialization
+    SplitModeUnset,
+    SplitVertical,
+    SplitHorizontal
+};
+
 struct modifiers
 {
     bool CmdKey;
@@ -151,18 +169,26 @@ struct node_container
 {
     double X, Y;
     double Width, Height;
-    int Type;
+    container_type Type;
+};
+
+struct node_contents
+{
+    std::vector<window_info*> Windows;
 };
 
 struct tree_node
 {
-    int WindowID;
+    /* (acarlson 02/26/16): Replace the WindowID with a list of windows 
+                            in the node */
+    int NodeID;
+    std::vector<window_info*> Windows;
     node_container Container;
     tree_node *Parent;
     tree_node *LeftChild;
     tree_node *RightChild;
 
-    int SplitMode;
+    split_mode SplitMode;
     double SplitRatio;
 };
 

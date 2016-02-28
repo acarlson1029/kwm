@@ -9,7 +9,13 @@ extern kwm_path KWMPath;
 extern kwm_screen KWMScreen;
 extern kwm_tiling KWMTiling;
 
-node_container LeftVerticalContainerSplit(screen_info *Screen, tree_node *Node)
+/* Note on parameters and const:
+    const type* const VarName  -> can't change pointer, can't change data.
+    type* const VarName        -> can't change pointer, can change data.
+                                  `-> needed for dereferencing struct elements.
+*/
+
+node_container LeftVerticalContainerSplit(screen_info* const Screen, const tree_node* const Node)
 {
     space_info *Space = &Screen->Space[Screen->ActiveSpace];
     node_container LeftContainer;
@@ -22,7 +28,7 @@ node_container LeftVerticalContainerSplit(screen_info *Screen, tree_node *Node)
     return LeftContainer;
 }
 
-node_container RightVerticalContainerSplit(screen_info *Screen, tree_node *Node)
+node_container RightVerticalContainerSplit(screen_info* const Screen, const tree_node* const Node)
 {
     space_info *Space = &Screen->Space[Screen->ActiveSpace];
     node_container RightContainer;
@@ -35,7 +41,7 @@ node_container RightVerticalContainerSplit(screen_info *Screen, tree_node *Node)
     return RightContainer;
 }
 
-node_container UpperHorizontalContainerSplit(screen_info *Screen, tree_node *Node)
+node_container UpperHorizontalContainerSplit(screen_info* const Screen, const tree_node* const Node)
 {
     space_info *Space = &Screen->Space[Screen->ActiveSpace];
     node_container UpperContainer;
@@ -48,7 +54,7 @@ node_container UpperHorizontalContainerSplit(screen_info *Screen, tree_node *Nod
     return UpperContainer;
 }
 
-node_container LowerHorizontalContainerSplit(screen_info *Screen, tree_node *Node)
+node_container LowerHorizontalContainerSplit(screen_info* const Screen, const tree_node* const Node)
 {
     space_info *Space = &Screen->Space[Screen->ActiveSpace];
     node_container LowerContainer;
@@ -61,26 +67,26 @@ node_container LowerHorizontalContainerSplit(screen_info *Screen, tree_node *Nod
     return LowerContainer;
 }
 
-void CreateNodeContainer(screen_info *Screen, tree_node *Node, int ContainerType)
+void CreateNodeContainer(screen_info* const Screen, tree_node* const Node, const container_type &ContainerType)
 {
     if(Node->SplitRatio == 0)
         Node->SplitRatio = KWMScreen.SplitRatio;
 
     switch(ContainerType)
     {
-        case 1:
+        case LeftVertical:
         {
             Node->Container = LeftVerticalContainerSplit(Screen, Node->Parent);
         } break;
-        case 2:
+        case RightVertical:
         {
             Node->Container = RightVerticalContainerSplit(Screen, Node->Parent);
         } break;
-        case 3:
+        case UpperHorizontal:
         {
             Node->Container = UpperHorizontalContainerSplit(Screen, Node->Parent);
         } break;
-        case 4:
+        case LowerHorizontal:
         {
             Node->Container = LowerHorizontalContainerSplit(Screen, Node->Parent);
         } break;
@@ -90,25 +96,25 @@ void CreateNodeContainer(screen_info *Screen, tree_node *Node, int ContainerType
     Node->Container.Type = ContainerType;
 }
 
-void CreateNodeContainerPair(screen_info *Screen, tree_node *LeftNode, tree_node *RightNode, int SplitMode)
+void CreateNodeContainerPair(screen_info* const Screen, tree_node* const LeftNode, tree_node* const RightNode, const split_mode &SplitMode)
 {
-    if(SplitMode == 1)
+    if(SplitMode == SplitVertical)
     {
-        CreateNodeContainer(Screen, LeftNode, 1);
-        CreateNodeContainer(Screen, RightNode, 2);
+        CreateNodeContainer(Screen, LeftNode, LeftVertical);
+        CreateNodeContainer(Screen, RightNode, RightVertical);
     }
     else
     {
-        CreateNodeContainer(Screen, LeftNode, 3);
-        CreateNodeContainer(Screen, RightNode, 4);
+        CreateNodeContainer(Screen, LeftNode, UpperHorizontal);
+        CreateNodeContainer(Screen, RightNode, LowerHorizontal);
     }
 }
 
-tree_node *CreateLeafNode(screen_info *Screen, tree_node *Parent, int WindowID, int ContainerType)
+tree_node *CreateLeafNode(screen_info* const Screen, tree_node* const Parent, const std::vector<window_info*> Windows, const container_type &ContainerType)
 {
     tree_node *Leaf = (tree_node*) malloc(sizeof(tree_node));
     Leaf->Parent = Parent;
-    Leaf->WindowID = WindowID;
+    Leaf->Windows = Windows;
 
     CreateNodeContainer(Screen, Leaf, ContainerType);
 
@@ -123,17 +129,17 @@ tree_node *CreateRootNode()
     tree_node *RootNode = (tree_node*) malloc(sizeof(tree_node));
     std::memset(RootNode, '\0', sizeof(tree_node));
 
-    RootNode->WindowID = -1;
+    RootNode->Windows = std::vector<window_info*>();
     RootNode->Parent = NULL;
     RootNode->LeftChild = NULL;
     RootNode->RightChild = NULL;
     RootNode->SplitRatio = KWMScreen.SplitRatio;
-    RootNode->SplitMode = 0;
+    RootNode->SplitMode = SplitModeUnset;
 
     return RootNode;
 }
 
-void SetRootNodeContainer(screen_info *Screen, tree_node *Node)
+void SetRootNodeContainer(screen_info* const Screen, tree_node* const Node)
 {
     space_info *Space = &Screen->Space[Screen->ActiveSpace];
 
@@ -143,71 +149,74 @@ void SetRootNodeContainer(screen_info *Screen, tree_node *Node)
     Node->Container.Height = Screen->Height - Space->Offset.PaddingTop - Space->Offset.PaddingBottom;
     Node->SplitMode = GetOptimalSplitMode(Node);
 
-    Node->Container.Type = 0;
+    Node->Container.Type = ContainerUnset;
 }
 
-void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowID, int SecondWindowID, int SplitMode)
+void CreateLeafNodePair(screen_info* const Screen, tree_node* const Parent, const std::vector<window_info*> &FirstNodeWindows, const std::vector<window_info*> &SecondNodeWindows, const split_mode &SplitMode)
 {
-    Parent->WindowID = -1;
+    Parent->Windows = std::vector<window_info*>();
     Parent->SplitMode = SplitMode;
     Parent->SplitRatio = KWMScreen.SplitRatio;
 
-    int LeftWindowID = KWMTiling.SpawnAsLeftChild ? SecondWindowID : FirstWindowID;
-    int RightWindowID = KWMTiling.SpawnAsLeftChild ? FirstWindowID : SecondWindowID;
+    std::vector<window_info*> LeftNodeWindows  = KWMTiling.SpawnAsLeftChild ? SecondNodeWindows : FirstNodeWindows;
+    std::vector<window_info*> RightNodeWindows = KWMTiling.SpawnAsLeftChild ? FirstNodeWindows  : SecondNodeWindows;
 
-    if(SplitMode == 1)
+    if(SplitMode == SplitVertical)
     {
-        Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftWindowID, 1);
-        Parent->RightChild = CreateLeafNode(Screen, Parent, RightWindowID, 2);
+        Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftNodeWindows, LeftVertical);
+        Parent->RightChild = CreateLeafNode(Screen, Parent, RightNodeWindows, RightVertical);
     }
     else
     {
-        Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftWindowID, 3);
-        Parent->RightChild = CreateLeafNode(Screen, Parent, RightWindowID, 4);
+        Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftNodeWindows, UpperHorizontal);
+        Parent->RightChild = CreateLeafNode(Screen, Parent, RightNodeWindows, LowerHorizontal);
     }
 }
 
-bool IsLeafNode(tree_node *Node)
+bool IsLeafNode(const tree_node* const Node)
 {
     return Node->LeftChild == NULL && Node->RightChild == NULL ? true : false;
 }
 
-tree_node *GetFirstLeafNode(tree_node *Node)
+const tree_node *GetFirstLeafNode(const tree_node* const Node)
 {
-    if(Node)
+    const tree_node *Leaf = Node;
+    if(Leaf)
     {
-        while(Node->LeftChild)
-            Node = Node->LeftChild;
+        while(Leaf->LeftChild)
+            Leaf = Leaf->LeftChild;
 
-        return Node;
+        return Leaf;
     }
 
     return NULL;
 }
 
-tree_node *GetLastLeafNode(tree_node *Node)
+const tree_node *GetLastLeafNode(const tree_node* const Node)
 {
-    if(Node)
+    const tree_node *Leaf = Node;
+    if(Leaf)
     {
-        while(Node->RightChild)
-            Node = Node->RightChild;
+        while(Leaf->RightChild)
+            Leaf = Leaf->RightChild;
 
-        return Node;
+        return Leaf;
     }
 
     return NULL;
 }
 
-tree_node *GetFirstPseudoLeafNode(tree_node *Node)
+// Find the first node without a window
+const tree_node *GetFirstPseudoLeafNode(const tree_node* const Node)
 {
-    tree_node *Leaf = GetFirstLeafNode(Node);
-    while(Leaf && Leaf->WindowID != -1)
+    const tree_node *Leaf = GetFirstLeafNode(Node);
+    while(Leaf && !Leaf->Windows.empty())
         Leaf = GetNearestNodeToTheRight(Leaf, SpaceModeBSP);
 
     return Leaf;
 }
 
-bool IsLeftChild(tree_node *Node)
+bool IsLeftChild(const tree_node* const Node)
 {
     if(Node && IsLeafNode(Node))
     {
@@ -218,7 +227,7 @@ bool IsLeftChild(tree_node *Node)
     return false;
 }
 
-bool IsRightChild(tree_node *Node)
+bool IsRightChild(const tree_node* const Node)
 {
     if(Node && IsLeafNode(Node))
     {
@@ -229,7 +238,7 @@ bool IsRightChild(tree_node *Node)
     return false;
 }
 
-tree_node *CreateTreeFromWindowIDList(screen_info *Screen, std::vector<window_info*> *WindowsPtr)
+tree_node *CreateTreeFromWindowIDList(screen_info* const Screen, const std::vector<window_info*>* const WindowsPtr)
 {
     if(IsSpaceFloating(Screen->ActiveSpace))
         return NULL;
@@ -254,21 +263,24 @@ tree_node *CreateTreeFromWindowIDList(screen_info *Screen, std::vector<window_in
     return RootNode;
 }
 
-bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, std::vector<window_info*> *WindowsPtr)
+bool CreateBSPTree(tree_node* const RootNode, screen_info* const Screen, const std::vector<window_info*>* const WindowsPtr)
 {
     bool Result = false;
-    std::vector<window_info*> &Windows = *WindowsPtr;
+    std::vector<window_info*> Windows = *WindowsPtr;
 
     if(Windows.size() >= 2)
     {
         tree_node *Root = RootNode;
-        std::size_t FirstIndex;
         bool FoundValidWindow = false;
-        for(FirstIndex = 0; FirstIndex < Windows.size(); ++FirstIndex)
+        std::vector<window_info*>::iterator It;
+
+        // TODO Need to bucketize windows into collections before creating nodes
+
+        for(It = Windows.begin(); It != Windows.end(); ++It)
         {
-            if(!IsWindowFloating(Windows[FirstIndex]->WID, NULL))
+            if(!IsWindowFloating((*It)->WID, NULL))
             {
-                Root->WindowID = Windows[FirstIndex]->WID;
+                Root->Windows.push_back(*It);
                 FoundValidWindow = true;
                 break;
             }
@@ -277,76 +289,68 @@ bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, std::vector<window_
         if(!FoundValidWindow)
             return false;
 
-        for(std::size_t WindowIndex = FirstIndex + 1; WindowIndex < Windows.size(); ++WindowIndex)
+        for(++It; It != Windows.end(); ++It)
         {
-            if(!IsWindowFloating(Windows[WindowIndex]->WID, NULL))
+            if(!IsWindowFloating((*It)->WID, NULL))
             {
                 while(!IsLeafNode(Root))
                 {
-                    // FIXME (acarlson) Testing reversal
-                    /*
-                    if(!IsLeafNode(Root->LeftChild) && IsLeafNode(Root->RightChild))
-                        Root = Root->RightChild;
-                    else
-                        Root = Root->LeftChild;
-                    */
                     if(!IsLeafNode(Root->RightChild) && IsLeafNode(Root->LeftChild))
                         Root = Root->LeftChild;
                     else
                         Root = Root->RightChild;
                 }
-
                 DEBUG("CreateBSPTree() Create pair of leafs")
-                CreateLeafNodePair(Screen, Root, Root->WindowID, Windows[WindowIndex]->WID, GetOptimalSplitMode(Root));
+                std::vector<window_info*> LeafWindows;
+                LeafWindows.push_back(*It);
+                CreateLeafNodePair(Screen, Root, Root->Windows, LeafWindows, GetOptimalSplitMode(Root));
                 Root = RootNode;
             }
         }
-
-        Result = true;
     }
     else if(Windows.size() == 1 && !IsWindowFloating(Windows[0]->WID, NULL))
     {
-        RootNode->WindowID = Windows[0]->WID;
+        RootNode->Windows = Windows;
         Result = true;
     }
 
     return Result;
 }
 
-bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, std::vector<window_info*> *WindowsPtr)
+bool CreateMonocleTree(tree_node* const RootNode, screen_info* const Screen, const std::vector<window_info*>* const WindowsPtr)
 {
     bool Result = false;
-    std::vector<window_info*> &Windows = *WindowsPtr;
+    std::vector<window_info*> Windows = *WindowsPtr;
 
     if(!Windows.empty())
     {
         tree_node *Root = RootNode;
-        Root->WindowID = Windows[0]->WID;
+        Root->Windows.push_back(Windows[0]);
 
-        for(std::size_t WindowIndex = 1; WindowIndex < Windows.size(); ++WindowIndex)
+        std::vector<window_info*>::iterator It;
+        for(It = Windows.begin(); It != Windows.end(); ++It)
         {
             tree_node *Next = CreateRootNode();
             SetRootNodeContainer(Screen, Next);
-            Next->WindowID = Windows[WindowIndex]->WID;
+            Next->Windows.push_back(*It);
 
             Root->RightChild = Next;
             Next->LeftChild = Root;
             Root = Next;
         }
-
         Result = true;
     }
 
     return Result;
 }
 
-int GetOptimalSplitMode(tree_node *Node)
+split_mode GetOptimalSplitMode(const tree_node* const Node)
 {
-    return (Node->Container.Width / Node->Container.Height) >= 1.618 ? 1 : 2;
+    return (Node->Container.Width / Node->Container.Height) >= 1.618 ? SplitVertical : SplitHorizontal;
 }
 
-void ChangeSplitRatio(double Value)
-{
+void ChangeSplitRatio(const double Value)
+ {
     if(Value > 0.0 && Value < 1.0)
     {
         DEBUG("ChangeSplitRatio() New Split-Ratio is " << Value)
@@ -354,20 +358,30 @@ void ChangeSplitRatio(double Value)
     }
 }
 
-void SwapNodeWindowIDs(tree_node *A, tree_node *B)
-{
+void SwapNodeWindows(tree_node* const A, tree_node* const B)
+ {
     if(A && B)
     {
-        DEBUG("SwapNodeWindowIDs() " << A->WindowID << " with " << B->WindowID)
-        int TempWindowID = A->WindowID;
-        A->WindowID = B->WindowID;
-        B->WindowID = TempWindowID;
-        ResizeWindowToContainerSize(A);
-        ResizeWindowToContainerSize(B);
+        // Strings for DEBUG
+        std::string WindowsA, WindowsB;
+        std::vector<window_info*>::iterator It;
+        for(It = A->Windows.begin(); It != A->Windows.end(); ++It)
+            if (It != A->Windows.end())
+                WindowsA.append(std::to_string((*It)->WID) + ", ");
+        for(It = B->Windows.begin(); It != B->Windows.end(); ++It)
+            if (It != B->Windows.end())
+                WindowsB.append(std::to_string((*It)->WID) + ", ");
+
+        DEBUG("SwapNodeWindows() " << WindowsA << " with " WindowsB)
+        std::vector<window_info*> TempWindows = A->Windows;
+        A->Windows = B->Windows;
+        B->Windows = A->Windows;
+        ResizeNodeToContainerSize(A);
+        ResizeNodeToContainerSize(B);
     }
 }
 
-tree_node *GetNearestLeafNeighbour(tree_node *Node, space_tiling_option Mode)
+const tree_node *GetNearestLeafNeighbour(const tree_node* const Node, const space_tiling_option &Mode)
 {
     if(Node && IsLeafNode(Node))
     {
@@ -382,19 +396,18 @@ tree_node *GetNearestLeafNeighbour(tree_node *Node, space_tiling_option Mode)
     return NULL;
 }
 
-tree_node *GetNodeFromWindowID(tree_node *Node, int WindowID, space_tiling_option Mode)
+const tree_node *GetNodeFromWindow(const tree_node* const Node, const window_info* const Window, const space_tiling_option &Mode)
 {
     if(Node)
     {
-        tree_node *CurrentNode = GetFirstLeafNode(Node);;
+        const tree_node *CurrentNode = GetFirstLeafNode(Node);;
         while(CurrentNode)
         {
-            if(CurrentNode->WindowID == WindowID)
+            if(IsWindowInNode(Window,CurrentNode))
             {
-                DEBUG("GetNodeFromWindowID() " << WindowID)
-                return CurrentNode;
+                    DEBUG("GetNodeFromWindowID() " << CurrentNode->Windows[0]->WID)
+                    return CurrentNode;
             }
-
             CurrentNode = GetNearestNodeToTheRight(CurrentNode, Mode);
         }
     }
@@ -402,7 +415,7 @@ tree_node *GetNodeFromWindowID(tree_node *Node, int WindowID, space_tiling_optio
     return NULL;
 }
 
-void ResizeNodeContainer(screen_info *Screen, tree_node *Node)
+void ResizeNodeContainer(screen_info* const Screen, const tree_node *Node)
 {
     if(Node)
     {
@@ -420,7 +433,7 @@ void ResizeNodeContainer(screen_info *Screen, tree_node *Node)
     }
 }
 
-tree_node *GetNearestNodeToTheLeft(tree_node *Node, space_tiling_option Mode)
+const tree_node *GetNearestNodeToTheLeft(const tree_node* const Node, const space_tiling_option &Mode)
 {
     if(Node)
     {
@@ -451,7 +464,7 @@ tree_node *GetNearestNodeToTheLeft(tree_node *Node, space_tiling_option Mode)
     return NULL;
 }
 
-tree_node *GetNearestNodeToTheRight(tree_node *Node, space_tiling_option Mode)
+const tree_node *GetNearestNodeToTheRight(const tree_node* const Node, const space_tiling_option &Mode)
 {
     if(Node)
     {
@@ -482,7 +495,7 @@ tree_node *GetNearestNodeToTheRight(tree_node *Node, space_tiling_option Mode)
     return NULL;
 }
 
-void CreateNodeContainers(screen_info *Screen, tree_node *Node, bool OptimalSplit)
+void CreateNodeContainers(screen_info* const Screen, tree_node* const Node, const bool &OptimalSplit)
 {
     if(Node && Node->LeftChild && Node->RightChild)
     {
@@ -494,22 +507,22 @@ void CreateNodeContainers(screen_info *Screen, tree_node *Node, bool OptimalSpli
     }
 }
 
-void ToggleNodeSplitMode(screen_info *Screen, tree_node *Node)
+void ToggleNodeSplitMode(screen_info* const Screen, tree_node* const Node)
 {
     if(!Node || IsLeafNode(Node))
         return;
 
-    Node->SplitMode = Node->SplitMode == 1 ? 2 : 1;
+    Node->SplitMode = Node->SplitMode == SplitVertical ? SplitHorizontal : SplitVertical;
     CreateNodeContainers(Screen, Node, false);
     ApplyNodeContainer(Node, SpaceModeBSP);
 }
 
-void ApplyNodeContainer(tree_node *Node, space_tiling_option Mode)
+void ApplyNodeContainer(const tree_node* const Node, const space_tiling_option Mode)
 {
     if(Node)
     {
-        if(Node->WindowID != -1)
-            ResizeWindowToContainerSize(Node);
+        if(Node->Windows.size() != 0)
+            ResizeNodeToContainerSize(Node);
 
         if(Mode == SpaceModeBSP && Node->LeftChild)
             ApplyNodeContainer(Node->LeftChild, Mode);
@@ -519,7 +532,7 @@ void ApplyNodeContainer(tree_node *Node, space_tiling_option Mode)
     }
 }
 
-void DestroyNodeTree(tree_node *Node, space_tiling_option Mode)
+void DestroyNodeTree(tree_node *Node, const space_tiling_option &Mode)
 {
     if(Node)
     {
@@ -533,15 +546,15 @@ void DestroyNodeTree(tree_node *Node, space_tiling_option Mode)
     }
 }
 
-void RotateTree(tree_node *Node, int Deg)
+void RotateTree(tree_node* const Node, const int &Deg)
 {
     if (Node == NULL || IsLeafNode(Node))
         return;
 
     DEBUG("RotateTree() " << Deg << " degrees")
 
-    if((Deg == 90 && Node->SplitMode == 1) ||
-       (Deg == 270 && Node->SplitMode == 2) ||
+    if((Deg == 90 && Node->SplitMode == SplitVertical) ||
+       (Deg == 270 && Node->SplitMode == SplitHorizontal) ||
        Deg == 180)
     {
         tree_node *Temp = Node->LeftChild;
@@ -551,29 +564,30 @@ void RotateTree(tree_node *Node, int Deg)
     }
 
     if(Deg != 180)
-        Node->SplitMode = Node->SplitMode == 2 ? 1 : 2;
+        Node->SplitMode = Node->SplitMode == SplitHorizontal ? SplitVertical : SplitHorizontal;
 
     RotateTree(Node->LeftChild, Deg);
     RotateTree(Node->RightChild, Deg);
 }
 
-void CreateDeserializedNodeContainer(tree_node *Node)
+void CreateDeserializedNodeContainer(tree_node* const Node)
 {
-    int SplitMode = Node->Parent->SplitMode;
-    int ContainerType = 0;
+    split_mode SplitMode = Node->Parent->SplitMode;
+    container_type ContainerType = ContainerUnset;
 
-    if(SplitMode == 1)
-        ContainerType = IsLeftChild(Node) ? 1 : 2;
+    if(SplitMode == SplitVertical)
+        ContainerType = IsLeftChild(Node) ? LeftVertical : RightVertical;
     else
-        ContainerType = IsLeftChild(Node) ? 3 : 4;
+        ContainerType = IsLeftChild(Node) ? UpperHorizontal : LowerHorizontal;
 
     CreateNodeContainer(KWMScreen.Current, Node, ContainerType);
 }
 
-void FillDeserializedTree(tree_node *RootNode)
+// TODO refactor
+void FillDeserializedTree(const tree_node* const RootNode)
 {
     std::vector<window_info*> Windows = GetAllWindowsOnDisplay(KWMScreen.Current->ID);
-    tree_node *Current = GetFirstLeafNode(RootNode);
+    const tree_node *Current = GetFirstLeafNode(RootNode);
 
     std::size_t Counter = 0, Leafs = 0;
     while(Current)
@@ -587,7 +601,7 @@ void FillDeserializedTree(tree_node *RootNode)
 
     if(Leafs < Windows.size() && Counter < Windows.size())
     {
-        tree_node *Root = RootNode;
+        const tree_node *Root = RootNode;
         for(; Counter < Windows.size(); ++Counter)
         {
             while(!IsLeafNode(Root))
@@ -605,7 +619,7 @@ void FillDeserializedTree(tree_node *RootNode)
     }
 }
 
-void SerializeParentNode(tree_node *Parent, std::string Role, std::vector<std::string> &Serialized)
+void SerializeParentNode(const tree_node* const Parent, const std::string &Role, std::vector<std::string> &Serialized)
 {
     Serialized.push_back("kwmc tree root create " + Role);
     Serialized.push_back("kwmc tree split-mode " + std::to_string(Parent->SplitMode));
@@ -634,7 +648,7 @@ void SerializeParentNode(tree_node *Parent, std::string Role, std::vector<std::s
     }
 }
 
-unsigned int DeserializeParentNode(tree_node *Parent, std::vector<std::string> &Serialized, unsigned int Index)
+unsigned int DeserializeParentNode(tree_node* const Parent, const std::vector<std::string> &Serialized, const unsigned int &Index)
 {
     unsigned int LineNumber = Index;
     for(;LineNumber < Serialized.size(); ++LineNumber)
@@ -644,7 +658,7 @@ unsigned int DeserializeParentNode(tree_node *Parent, std::vector<std::string> &
 
         if(Tokens[2] == "split-mode")
         {
-            Parent->SplitMode = ConvertStringToInt(Tokens[3]);
+            Parent->SplitMode = static_cast<split_mode>(ConvertStringToInt(Tokens[3]));
             DEBUG("Root: SplitMode Found " + Tokens[3])
         }
         else if(Tokens[2] == "split-ratio")
@@ -666,7 +680,7 @@ unsigned int DeserializeParentNode(tree_node *Parent, std::vector<std::string> &
     return LineNumber;
 }
 
-unsigned int DeserializeChildNode(tree_node *Parent, std::vector<std::string> &Serialized, unsigned int Index)
+unsigned int DeserializeChildNode(tree_node* const Parent, const std::vector<std::string> &Serialized, const unsigned int &Index)
 {
     unsigned int LineNumber = Index;
     for(;LineNumber < Serialized.size(); ++LineNumber)
@@ -675,7 +689,7 @@ unsigned int DeserializeChildNode(tree_node *Parent, std::vector<std::string> &S
         if(Line == "kwmc tree root create left")
         {
             DEBUG("Child: Create root")
-            Parent->LeftChild = CreateLeafNode(KWMScreen.Current, Parent, -1, 1);
+            Parent->LeftChild = CreateLeafNode(KWMScreen.Current, Parent, std::vector<window_info*>(), LeftVertical);
             CreateDeserializedNodeContainer(Parent->LeftChild);
             LineNumber = DeserializeParentNode(Parent->LeftChild, Serialized, LineNumber+1);
             return LineNumber;
@@ -683,7 +697,7 @@ unsigned int DeserializeChildNode(tree_node *Parent, std::vector<std::string> &S
         else if(Line == "kwmc tree root create right")
         {
             DEBUG("Child: Create root")
-            Parent->RightChild = CreateLeafNode(KWMScreen.Current, Parent, -1, 2);
+            Parent->RightChild = CreateLeafNode(KWMScreen.Current, Parent, std::vector<window_info*>(), RightVertical);
             CreateDeserializedNodeContainer(Parent->RightChild);
             LineNumber = DeserializeParentNode(Parent->RightChild, Serialized, LineNumber+1);
             return LineNumber;
@@ -691,14 +705,14 @@ unsigned int DeserializeChildNode(tree_node *Parent, std::vector<std::string> &S
         else if(Line == "kwmc tree leaf create left")
         {
             DEBUG("Child: Create left leaf")
-            Parent->LeftChild = CreateLeafNode(KWMScreen.Current, Parent, -1, 1);
+            Parent->LeftChild = CreateLeafNode(KWMScreen.Current, Parent, std::vector<window_info*>(), LeftVertical);
             CreateDeserializedNodeContainer(Parent->LeftChild);
             return LineNumber;
         }
         else if(Line == "kwmc tree leaf create right")
         {
             DEBUG("Child: Create right leaf")
-            Parent->RightChild = CreateLeafNode(KWMScreen.Current, Parent, -1, 2);
+            Parent->RightChild = CreateLeafNode(KWMScreen.Current, Parent, std::vector<window_info*>(), RightVertical);
             CreateDeserializedNodeContainer(Parent->RightChild);
             return LineNumber;
         }
@@ -707,7 +721,7 @@ unsigned int DeserializeChildNode(tree_node *Parent, std::vector<std::string> &S
     return LineNumber;
 }
 
-tree_node *DeserializeNodeTree(std::vector<std::string> &Serialized)
+tree_node *DeserializeNodeTree(const std::vector<std::string> &Serialized)
 {
     if(Serialized.empty() || Serialized[0] != "kwmc tree root create parent")
         return NULL;
@@ -719,7 +733,7 @@ tree_node *DeserializeNodeTree(std::vector<std::string> &Serialized)
     return RootNode;
 }
 
-void SaveBSPTreeToFile(screen_info *Screen, std::string Name)
+void SaveBSPTreeToFile(screen_info* const Screen, const std::string &Name)
 {
     if(IsSpaceInitializedForScreen(Screen))
     {
@@ -743,7 +757,7 @@ void SaveBSPTreeToFile(screen_info *Screen, std::string Name)
     }
 }
 
-void LoadBSPTreeFromFile(screen_info *Screen, std::string Name)
+void LoadBSPTreeFromFile(screen_info* const Screen, const std::string &Name)
 {
     if(IsSpaceInitializedForScreen(Screen))
     {
@@ -769,3 +783,14 @@ void LoadBSPTreeFromFile(screen_info *Screen, std::string Name)
         UpdateBorder("marked");
     }
 }
+
+bool IsWindowInNode(const window_info* const Window, const tree_node* const Node)
+{
+    std::vector<window_info*>::const_iterator It;
+    for (It = Node->Windows.begin(); It != Node->Windows.end(); ++It)
+    {
+        if ((*It)->WID == Window->WID)
+            return true;
+    }
+    return false;
+};
