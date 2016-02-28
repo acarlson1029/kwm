@@ -109,6 +109,15 @@ enum hotkey_state
     HotkeyStateExclude
 };
 
+enum container_type
+{
+    ContainerRoot,
+    ContainerLeft,
+    ContainerRight,
+    ContainerUpper,
+    ContainerLower
+};
+
 struct modifiers
 {
     bool CmdKey;
@@ -151,7 +160,7 @@ struct node_container
 {
     double X, Y;
     double Width, Height;
-    int Type;
+    container_type Type;
 };
 
 struct tree_node

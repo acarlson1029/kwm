@@ -65,7 +65,7 @@ node_container LowerHorizontalContainerSplit(screen_info *Screen, tree_node *Nod
     return LowerContainer;
 }
 
-void CreateNodeContainer(screen_info *Screen, tree_node *Node, int ContainerType)
+void CreateNodeContainer(screen_info *Screen, tree_node *Node, const container_type &ContainerType)
 {
     Assert(Node, "CreateNodeContainer()")
 
@@ -74,21 +74,26 @@ void CreateNodeContainer(screen_info *Screen, tree_node *Node, int ContainerType
 
     switch(ContainerType)
     {
-        case 1:
+        case ContainerLeft:
         {
             Node->Container = LeftVerticalContainerSplit(Screen, Node->Parent);
         } break;
-        case 2:
+        case ContainerRight:
         {
             Node->Container = RightVerticalContainerSplit(Screen, Node->Parent);
         } break;
-        case 3:
+        case ContainerUpper:
         {
             Node->Container = UpperHorizontalContainerSplit(Screen, Node->Parent);
         } break;
-        case 4:
+        case ContainerLower:
         {
             Node->Container = LowerHorizontalContainerSplit(Screen, Node->Parent);
+        } break;
+        case ContainerRoot:
+        default:
+        {
+            DEBUG("CreateNodeContainer() Trying to create node_container for invalid container_type: " << ContainerType)
         } break;
     }
 
@@ -103,17 +108,17 @@ void CreateNodeContainerPair(screen_info *Screen, tree_node *LeftNode, tree_node
 
     if(SplitMode == 1)
     {
-        CreateNodeContainer(Screen, LeftNode, 1);
-        CreateNodeContainer(Screen, RightNode, 2);
+        CreateNodeContainer(Screen, LeftNode, ContainerLeft);
+        CreateNodeContainer(Screen, RightNode, ContainerRight);
     }
     else
     {
-        CreateNodeContainer(Screen, LeftNode, 3);
-        CreateNodeContainer(Screen, RightNode, 4);
+        CreateNodeContainer(Screen, LeftNode, ContainerUpper);
+        CreateNodeContainer(Screen, RightNode, ContainerLower);
     }
 }
 
-tree_node *CreateLeafNode(screen_info *Screen, tree_node *Parent, int WindowID, int ContainerType)
+tree_node *CreateLeafNode(screen_info *Screen, tree_node *Parent, int WindowID, const container_type &ContainerType)
 {
     Assert(Parent, "CreateLeafNode()")
 
@@ -160,7 +165,7 @@ void SetRootNodeContainer(screen_info *Screen, tree_node *Node)
     Node->Container.Height = Screen->Height - Space->Offset.PaddingTop - Space->Offset.PaddingBottom;
     Node->SplitMode = GetOptimalSplitMode(Node);
 
-    Node->Container.Type = 0;
+    Node->Container.Type = ContainerRoot;
 }
 
 void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowID, int SecondWindowID, int SplitMode)
@@ -176,13 +181,13 @@ void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowI
 
     if(SplitMode == 1)
     {
-        Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftWindowID, 1);
-        Parent->RightChild = CreateLeafNode(Screen, Parent, RightWindowID, 2);
+        Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftWindowID, ContainerLeft);
+        Parent->RightChild = CreateLeafNode(Screen, Parent, RightWindowID, ContainerRight);
     }
     else if(SplitMode == 2)
     {
-        Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftWindowID, 3);
-        Parent->RightChild = CreateLeafNode(Screen, Parent, RightWindowID, 4);
+        Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftWindowID, ContainerUpper);
+        Parent->RightChild = CreateLeafNode(Screen, Parent, RightWindowID, ContainerLower);
     }
     else
     {
@@ -560,12 +565,12 @@ void RotateTree(tree_node *Node, int Deg)
 void CreateDeserializedNodeContainer(tree_node *Node)
 {
     int SplitMode = Node->Parent->SplitMode;
-    int ContainerType = 0;
+    container_type ContainerType;
 
     if(SplitMode == 1)
-        ContainerType = IsLeftChild(Node) ? 1 : 2;
+        ContainerType = IsLeftChild(Node) ? ContainerLeft : ContainerRight;
     else
-        ContainerType = IsLeftChild(Node) ? 3 : 4;
+        ContainerType = IsLeftChild(Node) ? ContainerUpper : ContainerLower;
 
     CreateNodeContainer(KWMScreen.Current, Node, ContainerType);
 }
@@ -675,7 +680,7 @@ unsigned int DeserializeChildNode(tree_node *Parent, std::vector<std::string> &S
         if(Line == "kwmc tree root create left")
         {
             DEBUG("Child: Create root")
-            Parent->LeftChild = CreateLeafNode(KWMScreen.Current, Parent, -1, 1);
+            Parent->LeftChild = CreateLeafNode(KWMScreen.Current, Parent, -1, ContainerLeft);
             CreateDeserializedNodeContainer(Parent->LeftChild);
             LineNumber = DeserializeParentNode(Parent->LeftChild, Serialized, LineNumber+1);
             return LineNumber;
@@ -683,7 +688,7 @@ unsigned int DeserializeChildNode(tree_node *Parent, std::vector<std::string> &S
         else if(Line == "kwmc tree root create right")
         {
             DEBUG("Child: Create root")
-            Parent->RightChild = CreateLeafNode(KWMScreen.Current, Parent, -1, 2);
+            Parent->RightChild = CreateLeafNode(KWMScreen.Current, Parent, -1, ContainerRight);
             CreateDeserializedNodeContainer(Parent->RightChild);
             LineNumber = DeserializeParentNode(Parent->RightChild, Serialized, LineNumber+1);
             return LineNumber;
@@ -691,14 +696,14 @@ unsigned int DeserializeChildNode(tree_node *Parent, std::vector<std::string> &S
         else if(Line == "kwmc tree leaf create left")
         {
             DEBUG("Child: Create left leaf")
-            Parent->LeftChild = CreateLeafNode(KWMScreen.Current, Parent, -1, 1);
+            Parent->LeftChild = CreateLeafNode(KWMScreen.Current, Parent, -1, ContainerLeft);
             CreateDeserializedNodeContainer(Parent->LeftChild);
             return LineNumber;
         }
         else if(Line == "kwmc tree leaf create right")
         {
             DEBUG("Child: Create right leaf")
-            Parent->RightChild = CreateLeafNode(KWMScreen.Current, Parent, -1, 2);
+            Parent->RightChild = CreateLeafNode(KWMScreen.Current, Parent, -1, ContainerRight);
             CreateDeserializedNodeContainer(Parent->RightChild);
             return LineNumber;
         }

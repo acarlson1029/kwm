@@ -8,14 +8,14 @@ node_container RightVerticalContainerSplit(screen_info *Screen, tree_node *Node)
 node_container UpperHorizontalContainerSplit(screen_info *Screen, tree_node *Node);
 node_container LowerHorizontalContainerSplit(screen_info *Screen, tree_node *Node);
 
-void CreateNodeContainer(screen_info *Screen, tree_node *Node, int ContainerType);
+void CreateNodeContainer(screen_info *Screen, tree_node *Node, const container_type &ContainerType);
 void CreateNodeContainerPair(screen_info *Screen, tree_node *LeftNode, tree_node *RightNode, int SplitMode);
 void SetRootNodeContainer(screen_info *Screen, tree_node *Node);
 void ResizeNodeContainer(screen_info *Screen, tree_node *Node);
 void CreateNodeContainers(screen_info *Screen, tree_node *Node, bool OptimalSplit);
 void ApplyNodeContainer(tree_node *Node, space_tiling_option Mode);
 
-tree_node *CreateLeafNode(screen_info *Screen, tree_node *Parent, int WindowID, int ContainerType);
+tree_node *CreateLeafNode(screen_info *Screen, tree_node *Parent, int WindowID, const container_type &ContainerType);
 void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowID, int SecondWindowID, int SplitMode);
 tree_node *CreateRootNode();
 
