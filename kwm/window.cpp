@@ -428,28 +428,34 @@ void ShouldWindowNodeTreeUpdate(screen_info *Screen)
 
 void ShouldBSPTreeUpdate(screen_info *Screen, space_info *Space)
 {
+    // if new windows added
     if(KWMTiling.WindowLst.size() > Screen->OldWindowListCount)
     {
-        for(std::size_t WindowIndex = 0; WindowIndex < KWMTiling.WindowLst.size(); ++WindowIndex)
+        for(std::<window_info>::iterator It = KWMTiling.WindowLst.begin(); It != KWMTiling.WindowLst.end(); ++It)
         {
-            if(!GetNodeFromWindow(Space->RootNode, KWMTiling.WindowLst[WindowIndex], Space->Mode))
+            // TODO This searches the tree for every window. Is there a quicker way?
+            // * let kwm_windows = windows in KWM
+            // * Traverse Leaf nodes.
+            //   * For window in Leaf, if window in kwm_windows, remove window from kwm_windows
+            // * Add remaining windows
+            if(!GetNodeFromWindow(Space->RootNode, &(*It), Space-Mode))
             {
-                if(!IsApplicationFloating(&KWMTiling.WindowLst[WindowIndex]) &&
-                   !IsWindowFloating(KWMTiling.WindowLst[WindowIndex].WID, NULL))
+                if(!IsApplicationFloating(&(*It)) &&
+                   !IsWindowFloating((*It).WID, NULL))
                 {
                     DEBUG("ShouldBSPTreeUpdate() Add Window")
                     tree_node *Insert = GetFirstPseudoLeafNode(Space->RootNode);
-                    if(Insert)
+                    if (Insert)
                     {
-                        Insert->Windows.push_back(KWMTiling.WindowLst[WindowIndex]);
+                        Insert->Windows.push_back(*It);
                         ApplyNodeContainer(Insert, SpaceModeBSP);
                     }
                     else
                     {
-                        AddWindowToBSPTree(Screen, KWMTiling.WindowLst[WindowIndex].WID);
+                        AddWindowToBSPTree(Screen, *It);
                     }
-
-                    SetWindowFocus(&KWMTiling.WindowLst[WindowIndex]);
+                    
+                    SetWindowFocus(&(*It));
                     MoveCursorToCenterOfFocusedWindow();
                 }
             }
@@ -462,27 +468,25 @@ void ShouldBSPTreeUpdate(screen_info *Screen, space_info *Space)
         tree_node *CurrentNode = GetFirstLeafNode(Space->RootNode);
         while(CurrentNode)
         {
-            WindowIDsInTree.push_back(CurrentNode->WindowID);
-            CurrentNode = GetNearestNodeToTheRight(CurrentNode, SpaceModeBSP);
-        }
-
-        for(std::size_t IDIndex = 0; IDIndex < WindowIDsInTree.size(); ++IDIndex)
-        {
-            bool Found = false;
-            for(std::size_t WindowIndex = 0; WindowIndex < KWMTiling.WindowLst.size(); ++WindowIndex)
+            for(std::vector<window_info*>::iterator NodeWinPtrIt = CurrentNode->Windows.begin(); NodeWinPtrIt != CurrentNode->Windows.end(); ++NodeWinPtrIt)
             {
-                if(KWMTiling.WindowLst[WindowIndex].WID == WindowIDsInTree[IDIndex])
+                bool Found = false;
+                for(std::vector<window_info>::iterator KWMWinIt = KWMTiling.WindowLst.begin(); KWMWinIt != KWMTiling.WIndowLst.end(); ++KWMWinIt)
                 {
-                    Found = true;
-                    break;
+                    if ((*KWMWinIt).WID == (*NodeWinPtrIt)->WID)
+                    {
+                        Found = true;
+                        break;
+                    }
+                }
+                // TODO Can we break after first found? Is this function called once per window change?
+                if (!Found)
+                {
+                    DEBUG("ShouldBSPTreeUpdate() Remove Window " << (*NodeWinPtrIt)->WID)
+                    RemoveWindowFromBSPTree(Screen, *NodeWinPtrIt, false, true);
                 }
             }
-
-            if(!Found)
-            {
-                DEBUG("ShouldBSPTreeUpdate() Remove Window " << WindowIDsInTree[IDIndex])
-                RemoveWindowFromBSPTree(Screen, WindowIDsInTree[IDIndex], false, true);
-            }
+            CurrentNode = GetNearestNodeToTheRight(CurrentNode, SpaceModeBSP);
         }
 
         if(!KWMFocus.Window)
@@ -496,7 +500,7 @@ void ShouldBSPTreeUpdate(screen_info *Screen, space_info *Space)
     }
 }
 
-void AddWindowToBSPTree(screen_info *Screen, int WindowID)
+void AddWindowToBSPTree(screen_info *Screen, window_info *Window)
 {
     if(!DoesSpaceExistInMapOfScreen(Screen))
         return;
@@ -508,10 +512,10 @@ void AddWindowToBSPTree(screen_info *Screen, int WindowID)
     DEBUG("AddWindowToBSPTree() Create pair of leafs")
     bool UseFocusedContainer = KWMFocus.Window &&
                                IsWindowOnActiveSpace(KWMFocus.Window->WID) &&
-                               KWMFocus.Window->WID != WindowID;
+                               KWMFocus.Window->WID != Window->WID;
 
     bool DoNotUseMarkedContainer = IsWindowFloating(KWMScreen.MarkedWindow->WID, NULL) ||
-                                   (KWMScreen.MarkedWindow->WID == WindowID);
+                                   (KWMScreen.MarkedWindow->WID == WindowID->WID);
 
     if(KWMScreen.MarkedWindow->WID == -1 && UseFocusedContainer)
     {
@@ -535,10 +539,12 @@ void AddWindowToBSPTree(screen_info *Screen, int WindowID)
         ClearMarkedWindow();
     }
 
-    if(CurrentNode && CurrentNode->WindowID != -1)
+    if(CurrentNode && !CurrentNode->Windows.empty())
     {
-        int SplitMode = KWMScreen.SplitMode == -1 ? GetOptimalSplitMode(CurrentNode) : KWMScreen.SplitMode;
-        CreateLeafNodePair(Screen, CurrentNode, CurrentNode->WindowID, WindowID, SplitMode);
+        split_mode SplitMode = KWMScreen.SplitMode == -1 ? GetOptimalSplitMode(CurrentNode) : KWMScreen.SplitMode;
+        std::vector<window_info*> Windows;
+        Windows.push_back(Window);
+        CreateLeafNodePair(Screen, CurrentNode, CurrentNode->Windows, Windows, SplitMode);
         ApplyNodeContainer(CurrentNode, Space->Mode);
     }
 }
@@ -548,16 +554,16 @@ void AddWindowToBSPTree()
     if(!KWMScreen.Current)
         return;
 
-    AddWindowToBSPTree(KWMScreen.Current, KWMFocus.Window->WID);
+    AddWindowToBSPTree(KWMScreen.Current, KWMFocus.Window);
 }
 
-void RemoveWindowFromBSPTree(screen_info *Screen, int WindowID, bool Center, bool Refresh)
+void RemoveWindowFromBSPTree(screen_info *Screen, window_info *Window, bool Center, bool Refresh)
 {
     if(!DoesSpaceExistInMapOfScreen(Screen))
         return;
 
     space_info *Space = GetActiveSpaceOfScreen(Screen);
-    tree_node *WindowNode = GetNodeFromWindowID(Space->RootNode, WindowID, Space->Mode);
+    tree_node *WindowNode = GetNodeFromWindow(Space->RootNode, Window, Space->Mode);
     if(!WindowNode)
         return;
 
@@ -628,7 +634,7 @@ void RemoveWindowFromBSPTree()
     if(!KWMScreen.Current)
         return;
 
-    RemoveWindowFromBSPTree(KWMScreen.Current, KWMFocus.Window->WID, true, true);
+    RemoveWindowFromBSPTree(KWMScreen.Current, KWMFocus.Window, true, true);
 }
 
 void ShouldMonocleTreeUpdate(screen_info *Screen, space_info *Space)
@@ -638,7 +644,7 @@ void ShouldMonocleTreeUpdate(screen_info *Screen, space_info *Space)
         DEBUG("ShouldMonocleTreeUpdate() Add Window")
         for(std::size_t WindowIndex = 0; WindowIndex < KWMTiling.WindowLst.size(); ++WindowIndex)
         {
-            if(!GetNodeFromWindowID(Space->RootNode, KWMTiling.WindowLst[WindowIndex].WID, Space->Mode))
+            if(!GetNodeFromWindow(Space->RootNode, KWMTiling.WindowLst[WindowIndex], Space->Mode))
             {
                 if(!IsApplicationFloating(&KWMTiling.WindowLst[WindowIndex]))
                 {
