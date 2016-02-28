@@ -199,16 +199,14 @@ void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowI
             Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftWindowID, ContainerUpper);
             Parent->RightChild = CreateLeafNode(Screen, Parent, RightWindowID, ContainerLower);
         } break;
-        case SplitModeOptimal:
+        default:
         {
+            DEBUG("CreateLeafNodePair() Invalid SplitMode given: " << SplitMode)
+            DEBUG("CreateLeafNodePair() Setting Parent to NULL")
             Parent->Parent = NULL;
             Parent->LeftChild = NULL;
             Parent->RightChild = NULL;
             Parent = NULL;
-        } break;
-        default:
-        {
-            DEBUG("CreateLeafNodePair() Invalid SplitMode given: " << SplitMode)
         } break;
     }
 }
@@ -255,24 +253,32 @@ tree_node *GetFirstPseudoLeafNode(tree_node *Node)
 
 bool IsLeftChild(tree_node *Node)
 {
-    if(Node && IsLeafNode(Node))
+    if (Node && Node->Parent)
     {
-        tree_node *Parent = Node->Parent;
-        return Parent->LeftChild == Node;
+        return Node->Parent->LeftChild == Node;
     }
 
     return false;
 }
 
+bool IsLeftLeaf(tree_node *Node)
+{
+    return IsLeftChild(Node) && IsLeafNode(Node);
+}
+
 bool IsRightChild(tree_node *Node)
 {
-    if(Node && IsLeafNode(Node))
+    if (Node && Node->Parent)
     {
-        tree_node *Parent = Node->Parent;
-        return Parent->RightChild == Node;
+        return Node->Parent->RightChild == Node;
     }
 
     return false;
+}
+
+bool IsRightLeaf(tree_node *Node)
+{
+    return IsRightChild(Node) && IsLeafNode(Node);
 }
 
 tree_node *CreateTreeFromWindowIDList(screen_info *Screen, std::vector<window_info*> *WindowsPtr)
@@ -398,7 +404,7 @@ tree_node *GetNearestLeafNeighbour(tree_node *Node, space_tiling_option Mode)
     if(Node && IsLeafNode(Node))
     {
         if(Mode == SpaceModeBSP)
-            return IsLeftChild(Node) ? GetNearestNodeToTheRight(Node, Mode) : GetNearestNodeToTheLeft(Node, Mode);
+            return IsLeftLeaf(Node) ? GetNearestNodeToTheRight(Node, Mode) : GetNearestNodeToTheLeft(Node, Mode);
         else if(Mode == SpaceModeMonocle)
             return Node->LeftChild ? Node->LeftChild : Node->RightChild;
     }
@@ -450,21 +456,18 @@ tree_node *GetNearestNodeToTheLeft(tree_node *Node, space_tiling_option Mode)
 
         if(Mode == SpaceModeBSP)
         {
-            if(Node->Parent)
-            {
-                tree_node *Root = Node->Parent;
-                if(Root->LeftChild == Node)
-                    return GetNearestNodeToTheLeft(Root, Mode);
+            if(IsLeftChild(Node))
+                return GetNearestNodeToTheLeft(Node->Parent, Mode);
+            
+            tree_node *Left = Node->Parent->LeftChild;
+            if(IsLeafNode(Left))
+                return Left;
 
-                if(IsLeafNode(Root->LeftChild))
-                    return Root->LeftChild;
+            // TODO -- break into a WalkRight traversal function?
+            while(!IsLeafNode(Left))
+                Left = Left->RightChild;
 
-                Root = Root->LeftChild;
-                while(!IsLeafNode(Root->RightChild))
-                    Root = Root->RightChild;
-
-                return Root->RightChild;
-            }
+            return Left;
         }
     }
 
@@ -482,18 +485,18 @@ tree_node *GetNearestNodeToTheRight(tree_node *Node, space_tiling_option Mode)
         {
             if(Node->Parent)
             {
-                tree_node *Root = Node->Parent;
-                if(Root->RightChild == Node)
-                    return GetNearestNodeToTheRight(Root, Mode);
+                if(IsRightChild(Node))
+                    return GetNearestNodeToTheRight(Node->Parent, Mode);
 
-                if(IsLeafNode(Root->RightChild))
-                    return Root->RightChild;
+                tree_node *Right = Node->Parent->RightChild;
+                if(IsLeafNode(Right))
+                    return Right;
 
-                Root = Root->RightChild;
-                while(!IsLeafNode(Root->LeftChild))
-                    Root = Root->LeftChild;
+                // TODO -- break into a WalkLeft traversal function?
+                while(!IsLeafNode(Right))
+                    Right = Right->LeftChild;
 
-                return Root->LeftChild;
+                return Right;
             }
         }
     }
@@ -586,11 +589,11 @@ void CreateDeserializedNodeContainer(tree_node *Node)
     {
         case SplitModeHorizontal:
         {
-            ContainerType = IsLeftChild(Node) ? ContainerLeft : ContainerRight;
+            ContainerType = IsLeftLeaf(Node) ? ContainerLeft : ContainerRight;
         } break;
         case SplitModeVertical:
         {
-            ContainerType = IsLeftChild(Node) ? ContainerUpper : ContainerLower;
+            ContainerType = IsLeftLeaf(Node) ? ContainerUpper : ContainerLower;
         } break;
         default:
         {

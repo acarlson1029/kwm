@@ -414,7 +414,7 @@ void KwmReadCommand(std::vector<std::string> &Tokens, int ClientSockFD)
             tree_node *Node = GetNodeFromWindowID(Space->RootNode, WindowID, Space->Mode);
 
             if(Node)
-                Output = IsLeftChild(Node) ? "left" : "right";
+                Output = IsLeftChildLeaf(Node) ? "left" : "right";
         }
 
         KwmWriteToSocket(ClientSockFD, Output);

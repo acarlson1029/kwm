@@ -561,7 +561,7 @@ void RemoveWindowFromBSPTree(screen_info *Screen, int WindowID, bool Center, boo
     tree_node *Parent = WindowNode->Parent;
     if(Parent && Parent->LeftChild && Parent->RightChild)
     {
-        tree_node *AccessChild = IsRightChild(WindowNode) ? Parent->LeftChild : Parent->RightChild;
+        tree_node *AccessChild = IsRightChildLeaf(WindowNode) ? Parent->LeftChild : Parent->RightChild;
         tree_node *NewFocusNode = NULL;
         Parent->LeftChild = NULL;
         Parent->RightChild = NULL;
