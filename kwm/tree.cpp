@@ -11,7 +11,7 @@ extern kwm_path KWMPath;
 extern kwm_screen KWMScreen;
 extern kwm_tiling KWMTiling;
 
-tree_node *CreateTreeFromWindowIDList(screen_info *Screen, std::vector<window_info*> *WindowsPtr)
+tree_node *CreateTreeFromWindowIDList(screen_info *Screen, const std::vector<window_info*> &Windows)
 {
     if(IsSpaceFloating(Screen->ActiveSpace))
         return NULL;
@@ -23,9 +23,9 @@ tree_node *CreateTreeFromWindowIDList(screen_info *Screen, std::vector<window_in
     space_info *Space = GetActiveSpaceOfScreen(Screen);
 
     if(Space->Mode == SpaceModeBSP)
-        Result = CreateBSPTree(RootNode, Screen, WindowsPtr);
+        Result = CreateBSPTree(RootNode, Screen, Windows);
     else if(Space->Mode == SpaceModeMonocle)
-        Result = CreateMonocleTree(RootNode, Screen, WindowsPtr);
+        Result = CreateMonocleTree(RootNode, Screen, Windows);
 
     if(!Result)
     {
@@ -36,12 +36,11 @@ tree_node *CreateTreeFromWindowIDList(screen_info *Screen, std::vector<window_in
     return RootNode;
 }
 
-bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, std::vector<window_info*> *WindowsPtr)
+bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, const std::vector<window_info*> &Windows)
 {
     Assert(RootNode, "CreateBSPTree()")
 
     bool Result = false;
-    std::vector<window_info*> &Windows = *WindowsPtr;
 
     if(Windows.size() >= 2)
     {
@@ -73,12 +72,11 @@ bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, std::vector<window_
     return Result;
 }
 
-bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, std::vector<window_info*> *WindowsPtr)
+bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const std::vector<window_info*> &Windows)
 {
     Assert(RootNode, "CreateMonocleTree()")
 
     bool Result = false;
-    std::vector<window_info*> &Windows = *WindowsPtr;
 
     if(!Windows.empty())
     {

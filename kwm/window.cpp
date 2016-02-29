@@ -383,11 +383,11 @@ void CreateWindowNodeTree(screen_info *Screen, std::vector<window_info*> *Window
 
         Space->Initialized = true;
         Space->Offset = Screen->Offset;
-        Space->RootNode = CreateTreeFromWindowIDList(Screen, Windows);
+        Space->RootNode = CreateTreeFromWindowIDList(Screen, *Windows);
     }
     else if(Space->Initialized)
     {
-        Space->RootNode = CreateTreeFromWindowIDList(Screen, Windows);
+        Space->RootNode = CreateTreeFromWindowIDList(Screen, *Windows);
         if(Space->RootNode)
         {
             if(Space->Mode == SpaceModeBSP)

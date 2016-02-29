@@ -15,7 +15,7 @@
     Output:
         tree_node - Root of full tree.
 */
-tree_node *CreateTreeFromWindowIDList(screen_info *Screen, std::vector<window_info*> *WindowsPtr);
+tree_node *CreateTreeFromWindowIDList(screen_info *Screen, const std::vector<window_info*> &Windows);
 
 /* Create a BSP Tree starting at the root node from a list of windows. 
     Map:
@@ -28,7 +28,7 @@ tree_node *CreateTreeFromWindowIDList(screen_info *Screen, std::vector<window_in
         tree_node* RootNode - mutate the RootNode to populate with children created in this function.
         bool - Success status of the tree creation process.
 */
-bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, std::vector<window_info*> *WindowsPtr);
+bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, const std::vector<window_info*> &Windows);
 
 /* Create a Monocle Tree starting at the root node from a list of windows.
     Map:
@@ -41,7 +41,7 @@ bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, std::vector<window_
         tree_node* RootNode - mutate the RootNode to populate with children created in this function.
         bool - Success status of the tree creation process.
 */
-bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, std::vector<window_info*> *WindowsPtr);
+bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const std::vector<window_info*> &Windows);
 
 /* Recursively destroy the subtree and deallocate memory starting at Node
     Input:
