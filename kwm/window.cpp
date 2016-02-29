@@ -4,6 +4,8 @@
 #include "tree.h"
 #include "notifications.h"
 #include "border.h"
+#include "container.h"
+#include "node.h"
 
 #include <cmath>
 
@@ -390,7 +392,7 @@ void CreateWindowNodeTree(screen_info *Screen, std::vector<window_info*> *Window
         {
             if(Space->Mode == SpaceModeBSP)
             {
-                SetRootNodeContainer(Screen, Space->RootNode->Container);
+                SetRootNodeContainer(Screen, &Space->RootNode->Container);
                 CreateNodeContainers(Screen, Space->RootNode, true);
             }
             else if(Space->Mode == SpaceModeMonocle)
@@ -398,7 +400,7 @@ void CreateWindowNodeTree(screen_info *Screen, std::vector<window_info*> *Window
                 tree_node *CurrentNode = Space->RootNode;
                 while(CurrentNode)
                 {
-                    SetRootNodeContainer(Screen, CurrentNode->Container);
+                    SetRootNodeContainer(Screen, &CurrentNode->Container);
                     CurrentNode = CurrentNode->RightChild;
                 }
             }
@@ -534,7 +536,7 @@ void AddWindowToBSPTree(screen_info *Screen, int WindowID)
 
     if(CurrentNode && CurrentNode->WindowID != -1)
     {
-        split_mode SplitMode = KWMScreen.SplitMode == SplitModeOptimal ? GetOptimalSplitMode(CurrentNode) : KWMScreen.SplitMode;
+        split_mode SplitMode = KWMScreen.SplitMode == SplitModeOptimal ? GetOptimalSplitMode(CurrentNode->Container) : KWMScreen.SplitMode;
         CreateLeafNodePair(Screen, CurrentNode, CurrentNode->WindowID, WindowID, SplitMode);
         ApplyNodeContainer(CurrentNode, Space->Mode);
     }
@@ -561,7 +563,7 @@ void RemoveWindowFromBSPTree(screen_info *Screen, int WindowID, bool Center, boo
     tree_node *Parent = WindowNode->Parent;
     if(Parent && Parent->LeftChild && Parent->RightChild)
     {
-        tree_node *AccessChild = IsRightChildLeaf(WindowNode) ? Parent->LeftChild : Parent->RightChild;
+        tree_node *AccessChild = IsRightLeaf(WindowNode) ? Parent->LeftChild : Parent->RightChild;
         tree_node *NewFocusNode = NULL;
         Parent->LeftChild = NULL;
         Parent->RightChild = NULL;
@@ -696,7 +698,7 @@ void AddWindowToMonocleTree(screen_info *Screen, int WindowID)
     space_info *Space = GetActiveSpaceOfScreen(Screen);
     tree_node *CurrentNode = GetLastLeafNode(Space->RootNode);
     tree_node *NewNode = CreateRootNode();
-    SetRootNodeContainer(Screen, NewNode->Container);
+    SetRootNodeContainer(Screen, &NewNode->Container);
 
     NewNode->WindowID = WindowID;
     CurrentNode->RightChild = NewNode;
@@ -771,7 +773,7 @@ void AddWindowToTreeOfUnfocusedMonitor(screen_info *Screen, window_info *Window)
                     CurrentNode = CurrentNode->LeftChild;
             }
 
-            split_mode SplitMode = KWMScreen.SplitMode == SplitModeOptimal ? GetOptimalSplitMode(CurrentNode) : KWMScreen.SplitMode;
+            split_mode SplitMode = KWMScreen.SplitMode == SplitModeOptimal ? GetOptimalSplitMode(CurrentNode->Container) : KWMScreen.SplitMode;
             CreateLeafNodePair(Screen, CurrentNode, CurrentNode->WindowID, Window->WID, SplitMode);
             ResizeWindowToContainerSize(KWMTiling.SpawnAsLeftChild ? CurrentNode->LeftChild : CurrentNode->RightChild);
             Screen->ForceContainerUpdate = true;
@@ -781,7 +783,7 @@ void AddWindowToTreeOfUnfocusedMonitor(screen_info *Screen, window_info *Window)
             DEBUG("AddWindowToTreeOfUnfocusedMonitor() Monocle Space")
             tree_node *CurrentNode = GetLastLeafNode(Space->RootNode);
             tree_node *NewNode = CreateRootNode();
-            SetRootNodeContainer(Screen, NewNode->Container);
+            SetRootNodeContainer(Screen, &NewNode->Container);
 
             NewNode->WindowID = Window->WID;
             CurrentNode->RightChild = NewNode;

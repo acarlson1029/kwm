@@ -253,7 +253,6 @@ struct kwm_prefix
     bool Global;
 };
 
-
 struct kwm_hotkeys
 {
     std::vector<hotkey> List;

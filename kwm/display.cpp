@@ -2,6 +2,7 @@
 #include "space.h"
 #include "tree.h"
 #include "window.h"
+#include "container.h"
 
 extern kwm_screen KWMScreen;
 extern kwm_focus KWMFocus;
@@ -255,7 +256,7 @@ void ChangePaddingOfDisplay(const std::string &Side, int Offset)
     {
         if(Space->Mode == SpaceModeBSP)
         {
-            SetRootNodeContainer(Screen, Space->RootNode->Container);
+            SetRootNodeContainer(Screen, &Space->RootNode->Container);
             CreateNodeContainers(Screen, Space->RootNode, true);
         }
         else if(Space->Mode == SpaceModeMonocle)
@@ -263,7 +264,7 @@ void ChangePaddingOfDisplay(const std::string &Side, int Offset)
             tree_node *CurrentNode = Space->RootNode;
             while(CurrentNode)
             {
-                SetRootNodeContainer(Screen, CurrentNode->Container);
+                SetRootNodeContainer(Screen, &CurrentNode->Container);
                 CurrentNode = CurrentNode->RightChild;
             }
         }

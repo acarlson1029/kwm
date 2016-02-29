@@ -10,6 +10,9 @@
 #include "border.h"
 #include "types.h"
 #include "helpers.h"
+#include "serialize.h"
+#include "node.h"
+#include "container.h"
 
 extern kwm_screen KWMScreen;
 extern kwm_toggles KWMToggles;
@@ -414,7 +417,7 @@ void KwmReadCommand(std::vector<std::string> &Tokens, int ClientSockFD)
             tree_node *Node = GetNodeFromWindowID(Space->RootNode, WindowID, Space->Mode);
 
             if(Node)
-                Output = IsLeftChildLeaf(Node) ? "left" : "right";
+                Output = IsLeftLeaf(Node) ? "left" : "right";
         }
 
         KwmWriteToSocket(ClientSockFD, Output);
