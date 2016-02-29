@@ -9,86 +9,75 @@ extern kwm_path KWMPath;
 extern kwm_screen KWMScreen;
 extern kwm_tiling KWMTiling;
 
-node_container LeftVerticalContainerSplit(screen_info *Screen, tree_node *Node)
+node_container LeftVerticalContainerSplit(screen_info *Screen, const node_container &Container)
 {
     Assert(Node, "LeftVerticalContainerSplit()")
     space_info *Space = GetActiveSpaceOfScreen(Screen);
-    node_container LeftContainer;
+    node_container LeftContainer = Container;
 
-    LeftContainer.X = Node->Container.X;
-    LeftContainer.Y = Node->Container.Y;
-    LeftContainer.Width = (Node->Container.Width * Node->Container.SplitRatio) - (Space->Offset.VerticalGap / 2);
-    LeftContainer.Height = Node->Container.Height;
+    LeftContainer.Width = (Container.Width * Container.SplitRatio) - (Space->Offset.VerticalGap / 2);
 
     return LeftContainer;
 }
 
-node_container RightVerticalContainerSplit(screen_info *Screen, tree_node *Node)
+node_container RightVerticalContainerSplit(screen_info *Screen, const node_container &Container)
 {
     Assert(Node, "RightVerticalContainerSplit()")
     space_info *Space = GetActiveSpaceOfScreen(Screen);
-    node_container RightContainer;
+    node_container RightContainer = Container;
 
-    RightContainer.X = Node->Container.X + (Node->Container.Width * Node->Container.SplitRatio) + (Space->Offset.VerticalGap / 2);
-    RightContainer.Y = Node->Container.Y;
-    RightContainer.Width = (Node->Container.Width * (1 - Node->Container.SplitRatio)) - (Space->Offset.VerticalGap / 2);
-    RightContainer.Height = Node->Container.Height;
+    RightContainer.X = Container.X + (Container.Width * Container.SplitRatio) + (Space->Offset.VerticalGap / 2);
+    RightContainer.Width = (Container.Width * (1 - Container.SplitRatio)) - (Space->Offset.VerticalGap / 2);
 
     return RightContainer;
 }
 
-node_container UpperHorizontalContainerSplit(screen_info *Screen, tree_node *Node)
+node_container UpperHorizontalContainerSplit(screen_info *Screen, const node_container &Container)
 {
     Assert(Node, "UpperHorizontalContainerSplit()")
     space_info *Space = GetActiveSpaceOfScreen(Screen);
-    node_container UpperContainer;
+    node_container UpperContainer = Container;
 
-    UpperContainer.X = Node->Container.X;
-    UpperContainer.Y = Node->Container.Y;
-    UpperContainer.Width = Node->Container.Width;
-    UpperContainer.Height = (Node->Container.Height * Node->Container.SplitRatio) - (Space->Offset.HorizontalGap / 2);
+    UpperContainer.Height = (Container.Height * Container.SplitRatio) - (Space->Offset.HorizontalGap / 2);
 
     return UpperContainer;
 }
 
-node_container LowerHorizontalContainerSplit(screen_info *Screen, tree_node *Node)
+node_container LowerHorizontalContainerSplit(screen_info *Screen, const node_container &Container)
 {
     Assert(Node, "LowerHorizontalContainerSplit()")
     space_info *Space = GetActiveSpaceOfScreen(Screen);
-    node_container LowerContainer;
+    node_container LowerContainer = Container;
 
-    LowerContainer.X = Node->Container.X;
-    LowerContainer.Y = Node->Container.Y + (Node->Container.Height * Node->Container.SplitRatio) + (Space->Offset.HorizontalGap / 2);
-    LowerContainer.Width = Node->Container.Width;
-    LowerContainer.Height = (Node->Container.Height * (1 - Node->Container.SplitRatio)) - (Space->Offset.HorizontalGap / 2);
+    LowerContainer.Y = Container.Y + (Container.Height * Container.SplitRatio) + (Space->Offset.HorizontalGap / 2);
+    LowerContainer.Height = (Container.Height * (1 - Container.SplitRatio)) - (Space->Offset.HorizontalGap / 2);
 
     return LowerContainer;
 }
 
-void CreateNodeContainer(screen_info *Screen, tree_node *Node, const container_type &ContainerType)
+node_container CreateNodeContainer(screen_info *Screen, const node_container &ParentContainer, const container_type &ContainerType)
 {
     Assert(Node, "CreateNodeContainer()")
 
-    if(Node->Container.SplitRatio == 0)
-        Node->Container.SplitRatio = KWMScreen.SplitRatio;
+    node_container Container;
 
     switch(ContainerType)
     {
         case ContainerLeft:
         {
-            Node->Container = LeftVerticalContainerSplit(Screen, Node->Parent);
+            Container = LeftVerticalContainerSplit(Screen, ParentContainer);
         } break;
         case ContainerRight:
         {
-            Node->Container = RightVerticalContainerSplit(Screen, Node->Parent);
+            Container = RightVerticalContainerSplit(Screen, ParentContainer);
         } break;
         case ContainerUpper:
         {
-            Node->Container = UpperHorizontalContainerSplit(Screen, Node->Parent);
+            Container = UpperHorizontalContainerSplit(Screen, ParentContainer);
         } break;
         case ContainerLower:
         {
-            Node->Container = LowerHorizontalContainerSplit(Screen, Node->Parent);
+            Container = LowerHorizontalContainerSplit(Screen, ParentContainer);
         } break;
         case ContainerRoot:
         default:
@@ -97,26 +86,31 @@ void CreateNodeContainer(screen_info *Screen, tree_node *Node, const container_t
         } break;
     }
 
-    Node->Container.SplitMode = GetOptimalSplitMode(Node);
-    Node->Container.Type = ContainerType;
+    // FIXME  - (acarlson 02/28/16): Not sure if SplitRatio is correct -- should it be coming from a source already?
+    if(Container.SplitRatio == 0)
+        Container.SplitRatio = KWMScreen.SplitRatio;
+
+    Container.SplitMode = GetOptimalSplitMode(Container);
+    Container.Type = ContainerType;
+
+    return Container;
 }
 
-void CreateNodeContainerPair(screen_info *Screen, tree_node *LeftNode, tree_node *RightNode, const split_mode &SplitMode)
+void CreateNodeContainerPair(screen_info *Screen, tree_node *Parent, const split_mode &SplitMode)
 {
-    Assert(LeftNode, "CreateNodeContainerPair() Left Node")
-    Assert(RightNode, "CreateNodeContainerPair() Right Node")
+    Assert(Parent, "CreateNodeContainerPair() Parent")
 
     switch(SplitMode)
     {
         case SplitModeVertical:
         {
-            CreateNodeContainer(Screen, LeftNode, ContainerLeft);
-            CreateNodeContainer(Screen, RightNode, ContainerRight);
+            Parent->LeftChild->Container = CreateNodeContainer(Screen, Parent->Container, ContainerLeft);
+            Parent->RightChild->Container = CreateNodeContainer(Screen, Parent->Container, ContainerRight);
         } break;
         case SplitModeHorizontal:
         {
-            CreateNodeContainer(Screen, LeftNode, ContainerUpper);
-            CreateNodeContainer(Screen, RightNode, ContainerLower);
+            Parent->LeftChild->Container = CreateNodeContainer(Screen, Parent->Container, ContainerUpper);
+            Parent->RightChild->Container = CreateNodeContainer(Screen, Parent->Container, ContainerLower);
         } break;
         default:
         {
@@ -137,7 +131,7 @@ tree_node *CreateLeafNode(screen_info *Screen, tree_node *Parent, int WindowID, 
     Leaf->Parent = Parent;
     Leaf->WindowID = WindowID;
 
-    CreateNodeContainer(Screen, Leaf, ContainerType);
+    Leaf->Container = CreateNodeContainer(Screen, Parent->Container, ContainerType);
 
     Leaf->LeftChild = NULL;
     Leaf->RightChild = NULL;
@@ -161,19 +155,18 @@ tree_node *CreateRootNode()
     return RootNode;
 }
 
-void SetRootNodeContainer(screen_info *Screen, tree_node *Node)
+void SetRootNodeContainer(screen_info *Screen, node_container* Container)
 {
     Assert(Node, "SetRootNodeContainer()")
 
     space_info *Space = GetActiveSpaceOfScreen(Screen);
 
-    Node->Container.X = Screen->X + Space->Offset.PaddingLeft;
-    Node->Container.Y = Screen->Y + Space->Offset.PaddingTop;
-    Node->Container.Width = Screen->Width - Space->Offset.PaddingLeft - Space->Offset.PaddingRight;
-    Node->Container.Height = Screen->Height - Space->Offset.PaddingTop - Space->Offset.PaddingBottom;
-    Node->Container.SplitMode = GetOptimalSplitMode(Node);
-
-    Node->Container.Type = ContainerRoot;
+    Container->Type = ContainerRoot;
+    Container->X = Screen->X + Space->Offset.PaddingLeft;
+    Container->Y = Screen->Y + Space->Offset.PaddingTop;
+    Container->Width = Screen->Width - Space->Offset.PaddingLeft - Space->Offset.PaddingRight;
+    Container->Height = Screen->Height - Space->Offset.PaddingTop - Space->Offset.PaddingBottom;
+    Container->SplitMode = GetOptimalSplitMode(*Container);
 }
 
 void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowID, int SecondWindowID, const split_mode &SplitMode)
@@ -287,7 +280,7 @@ tree_node *CreateTreeFromWindowIDList(screen_info *Screen, std::vector<window_in
         return NULL;
 
     tree_node *RootNode = CreateRootNode();
-    SetRootNodeContainer(Screen, RootNode);
+    SetRootNodeContainer(Screen, &RootNode->Container);
 
     bool Result = false;
     space_info *Space = GetActiveSpaceOfScreen(Screen);
@@ -328,7 +321,7 @@ bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, std::vector<window_
             }
 
             DEBUG("CreateBSPTree() Create pair of leafs")
-            CreateLeafNodePair(Screen, Root, Root->WindowID, Windows[WindowIndex]->WID, GetOptimalSplitMode(Root));
+            CreateLeafNodePair(Screen, Root, Root->WindowID, Windows[WindowIndex]->WID, GetOptimalSplitMode(Root->Container));
             Root = RootNode;
         }
 
@@ -358,7 +351,7 @@ bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, std::vector<win
         for(std::size_t WindowIndex = 1; WindowIndex < Windows.size(); ++WindowIndex)
         {
             tree_node *Next = CreateRootNode();
-            SetRootNodeContainer(Screen, Next);
+            SetRootNodeContainer(Screen, &Next->Container);
             Next->WindowID = Windows[WindowIndex]->WID;
 
             Root->RightChild = Next;
@@ -372,9 +365,9 @@ bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, std::vector<win
     return Result;
 }
 
-split_mode GetOptimalSplitMode(tree_node *Node)
+split_mode GetOptimalSplitMode(const node_container &Container)
 {
-    return (Node->Container.Width / Node->Container.Height) >= 1.618 ? SplitModeVertical : SplitModeHorizontal;
+    return (Container.Width / Container.Height) >= 1.618 ? SplitModeVertical : SplitModeHorizontal;
 }
 
 void ChangeSplitRatio(double Value)
@@ -429,19 +422,20 @@ tree_node *GetNodeFromWindowID(tree_node *Node, int WindowID, space_tiling_optio
     return NULL;
 }
 
+// TODO -- traversal function for this resize operation?
 void ResizeNodeContainer(screen_info *Screen, tree_node *Node)
 {
     if(Node)
     {
         if(Node->LeftChild)
         {
-            CreateNodeContainer(Screen, Node->LeftChild, Node->LeftChild->Container.Type);
+            Node->LeftChild->Container = CreateNodeContainer(Screen, Node->Container, Node->LeftChild->Container.Type);
             ResizeNodeContainer(Screen, Node->LeftChild);
         }
 
         if(Node->RightChild)
         {
-            CreateNodeContainer(Screen, Node->RightChild, Node->RightChild->Container.Type);
+            Node->RightChild->Container = CreateNodeContainer(Screen, Node->Container, Node->RightChild->Container.Type);
             ResizeNodeContainer(Screen, Node->RightChild);
         }
     }
@@ -504,12 +498,13 @@ tree_node *GetNearestNodeToTheRight(tree_node *Node, space_tiling_option Mode)
     return NULL;
 }
 
+// TODO Add traversal function
 void CreateNodeContainers(screen_info *Screen, tree_node *Node, bool OptimalSplit)
 {
     if(Node && Node->LeftChild && Node->RightChild)
     {
-        Node->Container.SplitMode = OptimalSplit ? GetOptimalSplitMode(Node) : Node->Container.SplitMode;
-        CreateNodeContainerPair(Screen, Node->LeftChild, Node->RightChild, Node->Container.SplitMode);
+        Node->Container.SplitMode = OptimalSplit ? GetOptimalSplitMode(Node->Container) : Node->Container.SplitMode;
+        CreateNodeContainerPair(Screen, Node, Node->Container.SplitMode);
 
         CreateNodeContainers(Screen, Node->LeftChild, OptimalSplit);
         CreateNodeContainers(Screen, Node->RightChild, OptimalSplit);
@@ -526,6 +521,8 @@ void ToggleNodeSplitMode(screen_info *Screen, tree_node *Node)
     ApplyNodeContainer(Node, SpaceModeBSP);
 }
 
+// TODO Add traversal function
+// foreach node in tree, if windowID != -1, ResizeWindowToContainerSize(Node)
 void ApplyNodeContainer(tree_node *Node, space_tiling_option Mode)
 {
     if(Node)
@@ -601,7 +598,7 @@ void CreateDeserializedNodeContainer(tree_node *Node)
         } break;
     }
 
-    CreateNodeContainer(KWMScreen.Current, Node, ContainerType);
+    Node->Container = CreateNodeContainer(KWMScreen.Current, Node->Parent->Container, ContainerType);
 }
 
 void FillDeserializedTree(tree_node *RootNode)
@@ -633,7 +630,7 @@ void FillDeserializedTree(tree_node *RootNode)
             }
 
             DEBUG("FillDeserializedTree() Create pair of leafs")
-            CreateLeafNodePair(KWMScreen.Current, Root, Root->WindowID, Windows[Counter]->WID, GetOptimalSplitMode(Root));
+            CreateLeafNodePair(KWMScreen.Current, Root, Root->WindowID, Windows[Counter]->WID, GetOptimalSplitMode(Root->Container));
             Root = RootNode;
         }
     }
@@ -748,7 +745,7 @@ tree_node *DeserializeNodeTree(std::vector<std::string> &Serialized)
 
     DEBUG("Deserialize: Create Master")
     tree_node *RootNode = CreateRootNode();
-    SetRootNodeContainer(KWMScreen.Current, RootNode);
+    SetRootNodeContainer(KWMScreen.Current, &RootNode->Container);
     DeserializeParentNode(RootNode, Serialized, 1);
     return RootNode;
 }

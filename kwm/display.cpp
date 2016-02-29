@@ -255,7 +255,7 @@ void ChangePaddingOfDisplay(const std::string &Side, int Offset)
     {
         if(Space->Mode == SpaceModeBSP)
         {
-            SetRootNodeContainer(Screen, Space->RootNode);
+            SetRootNodeContainer(Screen, Space->RootNode->Container);
             CreateNodeContainers(Screen, Space->RootNode, true);
         }
         else if(Space->Mode == SpaceModeMonocle)
@@ -263,7 +263,7 @@ void ChangePaddingOfDisplay(const std::string &Side, int Offset)
             tree_node *CurrentNode = Space->RootNode;
             while(CurrentNode)
             {
-                SetRootNodeContainer(Screen, CurrentNode);
+                SetRootNodeContainer(Screen, CurrentNode->Container);
                 CurrentNode = CurrentNode->RightChild;
             }
         }

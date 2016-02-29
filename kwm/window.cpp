@@ -390,7 +390,7 @@ void CreateWindowNodeTree(screen_info *Screen, std::vector<window_info*> *Window
         {
             if(Space->Mode == SpaceModeBSP)
             {
-                SetRootNodeContainer(Screen, Space->RootNode);
+                SetRootNodeContainer(Screen, Space->RootNode->Container);
                 CreateNodeContainers(Screen, Space->RootNode, true);
             }
             else if(Space->Mode == SpaceModeMonocle)
@@ -398,7 +398,7 @@ void CreateWindowNodeTree(screen_info *Screen, std::vector<window_info*> *Window
                 tree_node *CurrentNode = Space->RootNode;
                 while(CurrentNode)
                 {
-                    SetRootNodeContainer(Screen, CurrentNode);
+                    SetRootNodeContainer(Screen, CurrentNode->Container);
                     CurrentNode = CurrentNode->RightChild;
                 }
             }
@@ -696,7 +696,7 @@ void AddWindowToMonocleTree(screen_info *Screen, int WindowID)
     space_info *Space = GetActiveSpaceOfScreen(Screen);
     tree_node *CurrentNode = GetLastLeafNode(Space->RootNode);
     tree_node *NewNode = CreateRootNode();
-    SetRootNodeContainer(Screen, NewNode);
+    SetRootNodeContainer(Screen, NewNode->Container);
 
     NewNode->WindowID = WindowID;
     CurrentNode->RightChild = NewNode;
@@ -781,7 +781,7 @@ void AddWindowToTreeOfUnfocusedMonitor(screen_info *Screen, window_info *Window)
             DEBUG("AddWindowToTreeOfUnfocusedMonitor() Monocle Space")
             tree_node *CurrentNode = GetLastLeafNode(Space->RootNode);
             tree_node *NewNode = CreateRootNode();
-            SetRootNodeContainer(Screen, NewNode);
+            SetRootNodeContainer(Screen, NewNode->Container);
 
             NewNode->WindowID = Window->WID;
             CurrentNode->RightChild = NewNode;
