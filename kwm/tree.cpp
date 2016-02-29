@@ -448,7 +448,7 @@ tree_node *GetNearestNodeToTheLeft(tree_node *Node, space_tiling_option Mode)
         if(Mode == SpaceModeMonocle)
             return Node->LeftChild;
 
-        if(Mode == SpaceModeBSP)
+        if((Mode == SpaceModeBSP) && Node->Parent)
         {
             if(IsLeftChild(Node))
                 return GetNearestNodeToTheLeft(Node->Parent, Mode);
@@ -475,23 +475,20 @@ tree_node *GetNearestNodeToTheRight(tree_node *Node, space_tiling_option Mode)
         if(Mode == SpaceModeMonocle)
             return Node->RightChild;
 
-        if(Mode == SpaceModeBSP)
+        if((Mode == SpaceModeBSP) && Node->Parent)
         {
-            if(Node->Parent)
-            {
-                if(IsRightChild(Node))
-                    return GetNearestNodeToTheRight(Node->Parent, Mode);
+            if(IsRightChild(Node))
+                return GetNearestNodeToTheRight(Node->Parent, Mode);
 
-                tree_node *Right = Node->Parent->RightChild;
-                if(IsLeafNode(Right))
-                    return Right;
-
-                // TODO -- break into a WalkLeft traversal function?
-                while(!IsLeafNode(Right))
-                    Right = Right->LeftChild;
-
+            tree_node *Right = Node->Parent->RightChild;
+            if(IsLeafNode(Right))
                 return Right;
-            }
+
+            // TODO -- break into a WalkLeft traversal function?
+            while(!IsLeafNode(Right))
+                Right = Right->LeftChild;
+
+            return Right;
         }
     }
 
