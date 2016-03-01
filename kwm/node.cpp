@@ -1,6 +1,6 @@
 #include "node.h"
 #include "container.h"
-#include "window.h" // TODO remove ResizeWindowToContainerSize and get rid of this include.
+#include "windowref.h" // TODO remove ResizeWindowToContainerSize and get rid of this include.
 
 extern kwm_screen KWMScreen;
 extern kwm_tiling KWMTiling;

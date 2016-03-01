@@ -13,5 +13,11 @@ display:
 window:
 	g++ -c window.cpp
 
+windowref:
+	g++ -c windowref.cpp
+
+application:
+	g++ -c application.cpp
+
 clean:
 	rm -rf ./*.o

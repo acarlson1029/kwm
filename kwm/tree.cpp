@@ -1,7 +1,7 @@
 #include "tree.h"
 #include "node.h"
 #include "space.h" // for GetActiveSpaceOfScreen()
-#include "window.h" // remove ResizeWindowToContainerSize
+#include "windowref.h" // remove ResizeWindowToContainerSize
 
 extern kwm_path KWMPath;
 extern kwm_screen KWMScreen;

@@ -1,95 +1,109 @@
-/* ^^^^ application ^^^^^ */
-/* Add the Role to the list of AllowedWindowRoles for Application
-    Output:
-        KWMTiling.AllowedWindowRoles[Application] is appended with Role
-    TODO:
-        Doesn't do anything with windows
-        application.cpp ?
- */
-void AllowRoleForApplication(std::string Application, std::string Role);
-/* Move window to display and set focus */
-void CaptureApplication(window_info *Window);
-/* Check whether application PID is cached  */
-bool IsApplicationInCache(int PID, std::vector<AXUIElementRef> *Elements);
-/* Check whether application has a role */
-bool IsAppSpecificWindowRole(window_info *Window, CFTypeRef Role, CFTypeRef SubRole);
-bool IsApplicationCapturedByScreen(window_info *Window);
-bool IsApplicationFloating(window_info *Window);
-
 /* vvvvv window (high-level)  vvvvv */
-std::string GetWindowTitle(AXUIElementRef WindowRef);
-CGSize GetWindowSize(AXUIElementRef WindowRef);
-CGPoint GetWindowPos(AXUIElementRef WindowRef);
+
+/* ========================================================================== */
+
+/* AXUIElementRef */
+
+/* ========================================================================== */
+
+/* window_info */
+
+/* communicates with KWMTiling list */
 window_info *GetWindowByID(int WindowID);
-CGPoint GetCursorPos();
-bool IsFocusedWindowFloating();
-bool IsWindowFloating(int WindowID, int *Index);
-bool IsAnyWindowBelowCursor(); // TODO use the IsWindowBelowCursor function
-bool IsWindowBelowCursor(window_info *Window); // TODO take cursor arg?
-bool IsWindowOnActiveSpace(int WindowID);
-void ClearFocusedWindow();
-bool ShouldWindowGainFocus(window_info *Window);
-bool GetWindowFocusedByOSX(int *WindowWID);
-int GetFocusedWindowID();
-bool FocusWindowOfOSX();
-void FocusWindowBelowCursor();
-std::vector<window_info> FilterWindowListAllDisplays();
-bool FilterWindowList(screen_info *Screen);
-void UpdateActiveWindowList(screen_info *Screen);
-void ToggleFocusedWindowFloating(); // calls window->tree function
-void MoveCursorToCenterOfWindow(window_info *Window);
-void MoveCursorToCenterOfFocusedWindow();
-bool FindClosestWindow(int Degrees, window_info *Target, bool Wrap);
-void ClearMarkedWindow();
-void MarkWindowContainer(window_info *Window);
-void MarkFocusedWindowContainer();
-void SetWindowRefFocus(AXUIElementRef WindowRef, window_info *Window, bool Notification);
-void SetWindowFocus(window_info *Window);
-// Does tree function
-bool IsWindowNonResizable(AXUIElementRef WindowRef, window_info *Window, CFTypeRef NewWindowPos, CFTypeRef NewWindowSize);
-void GetWindowInfo(const void *Key, const void *Value, void *Context);
+/* communicates with KWMCache window role list */
 bool GetWindowRole(window_info *Window, CFTypeRef *Role, CFTypeRef *SubRole);
-bool GetWindowRef(window_info *Window, AXUIElementRef *WindowRef);
-bool GetWindowRefFromCache(window_info *Window, AXUIElementRef *WindowRef);
+/* communicates with KWMTiling.FocusLst */
+std::vector<window_info> FilterWindowListAllDisplays();
+/* communicates with KWMTiling.WindowLst */
+bool FindClosestWindow(int Degrees, window_info *Target, bool Wrap);
+
+/* focus */
+/* Communicates with KWMScreen.Mark */
+void ClearMarkedWindow();
+/* Communicates with KWMScreen.Mark */
+void MarkWindowContainer(window_info *Window);
+/* Uses KWMFocus.Window with MarkWindowContainer */
+void MarkFocusedWindowContainer();
+/* Communicates with KWMTiling.FloatingWindowLst */
+bool IsWindowFloating(int WindowID, int *Index);
+/* Communicates with KWMFocus and KWMTiling.FloatingWindowLst */
+bool IsFocusedWindowFloating();
+/* Communicates with KWMFocus */
+void ClearFocusedWindow();
+/* Communicates with KWMFocus */
+int GetFocusedWindowID();
+/* Communicates with KWMTiling.WindowLst */
+bool FocusWindowOfOSX();
+/* Communicates with KWMTiling.FocusLst */
+void FocusWindowBelowCursor();
+
+/* Communicates with KWMTiling.FocusLst */
+bool IsAnyWindowBelowCursor(); // TODO use the IsWindowBelowCursor function
+/* Communicates with KWMTiling.WindowLst */
+bool IsWindowOnActiveSpace(int WindowID);
+/* Communicates with KWMTiling.WindowLst */
+bool FilterWindowList(screen_info *Screen);
+/* Communicates with KWMTiling.WindowLst / FocusLst */
+void UpdateActiveWindowList(screen_info *Screen);
+
+/* Communicates with KWMTiling.WindowLst */
+void GetWindowInfo(const void *Key, const void *Value, void *Context);
+/* Communicates with KWMCache.WindowRefs */
 void FreeWindowRefCache(int PID);
 
+/* pure window */
+bool IsWindowBelowCursor(window_info *Window); // TODO take cursor arg?
+bool ShouldWindowGainFocus(window_info *Window);
+
+/* misc */
+CGPoint GetCursorPos();
+
 /* window (window-level) */
-void MoveFloatingWindow(int X, int Y);
-void CenterWindow(screen_info *Screen, window_info *Window);
 bool WindowsAreEqual(window_info *Window, window_info *Match);
 double GetWindowDistance(window_info *A, window_info *B);
 void GetCenterOfWindow(window_info *Window, int *X, int *Y);
 bool WindowIsInDirection(window_info *A, window_info *B, int Degrees, bool Wrap);
-void CenterWindowInsideNodeContainer(AXUIElementRef WindowRef, int *Xptr, int *Yptr, int *Wptr, int *Hptr);
-void SetWindowDimensions(AXUIElementRef WindowRef, window_info *Window, int X, int Y, int Width, int Height);
-void ResizeWindowToContainerSize(tree_node *Node);
-void ResizeWindowToContainerSize(window_info *Window);
-void ResizeWindowToContainerSize();
 
+/* Operating on WINDOWS through TREES */
 /* tree */
+/* Focus */
+void SetWindowFocusByNode(tree_node *Node); // whereshould this go? it just calls SetWindowFocus(Window)
 void FocusFirstLeafNode();
 void FocusLastLeafNode();
-void UpdateWindowTree();
-void CreateWindowNodeTree(screen_info *Screen, std::vector<window_info*> *Windows);
-void ShouldWindowNodeTreeUpdate(screen_info *Screen);
-void AddWindowToTreeOfUnfocusedMonitor(screen_info *Screen, window_info *Window);
-void ShouldBSPTreeUpdate(screen_info *Screen, space_info *Space);
-void AddWindowToBSPTree(screen_info *Screen, int WindowID);
-void AddWindowToBSPTree();
-void RemoveWindowFromBSPTree(screen_info *Screen, int WindowID, bool Refresh);
-void RemoveWindowFromBSPTree();
-void ShouldMonocleTreeUpdate(screen_info *Screen, space_info *Space);
-void AddWindowToMonocleTree(screen_info *Screen, int WindowID);
-void RemoveWindowFromMonocleTree(screen_info *Screen, int WindowID);
-void ToggleWindowFloating(int WindowID);
-void ToggleFocusedWindowParent();
-void ToggleFocusedWindowFullscreen();
-void DetachAndReinsertWindow(int WindowID, int Degrees);
-void SwapFocusedWindowWithMarked();
-void SwapFocusedWindowDirected(int Degrees);
-void SwapFocusedWindowWithNearest(int Shift);
 void FocusWindowByID(int WindowID);
 void ShiftWindowFocus(int Shift);
 void ShiftWindowFocusDirected(int Degrees);
-void SetWindowFocusByNode(tree_node *Node);
+
+/* Determine whether to create the tree, update the tree, or destroy the tree */
+void UpdateWindowTree();
+void CreateWindowNodeTree(screen_info *Screen, std::vector<window_info*> *Windows);
+void ShouldWindowNodeTreeUpdate(screen_info *Screen);
+void ShouldBSPTreeUpdate(screen_info *Screen, space_info *Space);
+void ShouldMonocleTreeUpdate(screen_info *Screen, space_info *Space);
+
+/* Add/Remove windows */
+void AddWindowToBSPTree(screen_info *Screen, int WindowID);
+void AddWindowToBSPTree();
+void AddWindowToMonocleTree(screen_info *Screen, int WindowID);
+void AddWindowToTreeOfUnfocusedMonitor(screen_info *Screen, window_info *Window);
+void RemoveWindowFromBSPTree(screen_info *Screen, int WindowID, bool Refresh);
+void RemoveWindowFromBSPTree();
+void RemoveWindowFromMonocleTree(screen_info *Screen, int WindowID);
+
+/* Add/Remove Window from Tree to let it float */
+void ToggleWindowFloating(int WindowID);
+/* uses KWMFocus window as arg to ToggleWindowFloating() */
+void ToggleFocusedWindowFloating(); // calls window->tree function
+/* Add then Remove Window from Tree */
+void DetachAndReinsertWindow(int WindowID, int Degrees);
+/* Toggle window filling parent container */
+void ToggleFocusedWindowParent();
+/* Toggle window filling fullscreen */
+void ToggleFocusedWindowFullscreen();
+/* Swapping Nodes */
+void SwapFocusedWindowWithMarked();
+void SwapFocusedWindowDirected(int Degrees);
+void SwapFocusedWindowWithNearest(int Shift);
+
+/* Automatically find current window and call the ModifySubtree function */
 void ModifySubtreeSplitRatioFromWindow(const double &Offset);

@@ -14,7 +14,6 @@ bool WindowsAreEqual(window_info *Window, window_info *Match);
 
 void ClearFocusedWindow();
 bool ShouldWindowGainFocus(window_info *Window);
-bool GetWindowFocusedByOSX(int *WindowWID);
 int GetFocusedWindowID();
 bool FocusWindowOfOSX();
 void FocusWindowBelowCursor();
@@ -48,8 +47,6 @@ void DetachAndReinsertWindow(int WindowID, int Degrees);
 void SwapFocusedWindowWithMarked();
 void SwapFocusedWindowDirected(int Degrees);
 void SwapFocusedWindowWithNearest(int Shift);
-void MoveCursorToCenterOfWindow(window_info *Window);
-void MoveCursorToCenterOfFocusedWindow();
 void FocusWindowByID(int WindowID);
 void ShiftWindowFocus(int Shift);
 void ShiftWindowFocusDirected(int Degrees);
@@ -62,30 +59,13 @@ void ClearMarkedWindow();
 void MarkWindowContainer(window_info *Window);
 void MarkFocusedWindowContainer();
 
-void SetWindowRefFocus(AXUIElementRef WindowRef, window_info *Window, bool Notification);
-void SetWindowFocus(window_info *Window);
 void SetWindowFocusByNode(tree_node *Node);
-
-bool IsWindowNonResizable(AXUIElementRef WindowRef, window_info *Window, CFTypeRef NewWindowPos, CFTypeRef NewWindowSize);
-void CenterWindowInsideNodeContainer(AXUIElementRef WindowRef, int *Xptr, int *Yptr, int *Wptr, int *Hptr);
-
-void SetWindowDimensions(AXUIElementRef WindowRef, window_info *Window, int X, int Y, int Width, int Height);
-void CenterWindow(screen_info *Screen, window_info *Window);
-void MoveFloatingWindow(int X, int Y);
-void ResizeWindowToContainerSize(tree_node *Node);
-void ResizeWindowToContainerSize(window_info *Window);
-void ResizeWindowToContainerSize();
 
 CGPoint GetCursorPos();
 window_info *GetWindowByID(int WindowID);
 std::string GetUTF8String(CFStringRef Temp);
-std::string GetWindowTitle(AXUIElementRef WindowRef);
-CGSize GetWindowSize(AXUIElementRef WindowRef);
-CGPoint GetWindowPos(AXUIElementRef WindowRef);
 void GetWindowInfo(const void *Key, const void *Value, void *Context);
 bool GetWindowRole(window_info *Window, CFTypeRef *Role, CFTypeRef *SubRole);
-bool GetWindowRef(window_info *Window, AXUIElementRef *WindowRef);
-bool GetWindowRefFromCache(window_info *Window, AXUIElementRef *WindowRef);
 bool IsApplicationInCache(int PID, std::vector<AXUIElementRef> *Elements);
 void FreeWindowRefCache(int PID);
 void ModifySubtreeSplitRatioFromWindow(const double &Offset);
