@@ -72,4 +72,5 @@ void SwapNodeWindowIDs(tree_node *A, tree_node *B);
 bool ModifyNodeSplitRatio(tree_node *Node, const double &Offset);
 void ToggleNodeSplitMode(tree_node *Node);
 
+void ResizeElementInNode(tree_node *Node);
 #endif

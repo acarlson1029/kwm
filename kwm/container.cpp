@@ -1,5 +1,7 @@
 #include "container.h"
+#include "windowref.h" // used for ResizeWindowToContainerSize
 #include "space.h"  // Used for the GetActiveSpaceOfScreen functions call; can do this in node.cpp and pass the Space?
+#include "window.h" // containers hold windows; windows are the next abstraction level down
 
 extern kwm_screen KWMScreen;
 
@@ -158,4 +160,10 @@ bool ModifyContainerSplitRatio(node_container *Container, const double &Offset)
 void ToggleContainerSplitMode(node_container *Container)
 {
     Container->SplitMode = Container->SplitMode == SplitModeVertical ? SplitModeHorizontal : SplitModeVertical;
+}
+
+void ResizeElementInContainer(const int &WindowID, node_container *Container)
+{
+    window_info *Window = GetWindowByID(WindowID);
+    ResizeWindowToContainerSize(Window, Container);
 }

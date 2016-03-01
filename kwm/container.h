@@ -70,4 +70,5 @@ void ResizeContainer(screen_info *Screen, node_container *Container);
 bool ModifyContainerSplitRatio(node_container *Container, const double &Offset);
 
 void ToggleContainerSplitMode(node_container *Container);
+void ResizeElementInContainer(const int &WindowID, node_container *Container);
 #endif

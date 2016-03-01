@@ -1,6 +1,5 @@
 #include "node.h"
 #include "container.h"
-#include "windowref.h" // TODO remove ResizeWindowToContainerSize and get rid of this include.
 
 extern kwm_screen KWMScreen;
 extern kwm_tiling KWMTiling;
@@ -117,8 +116,8 @@ void SwapNodeWindowIDs(tree_node *A, tree_node *B)
         int TempWindowID = A->WindowID;
         A->WindowID = B->WindowID;
         B->WindowID = TempWindowID;
-        ResizeWindowToContainerSize(A);
-        ResizeWindowToContainerSize(B);
+        ResizeElementInNode(A);
+        ResizeElementInNode(B);
     }
 }
 
@@ -167,5 +166,13 @@ void ClearElementInNode(screen_info *Screen, tree_node *Node)
     {
         Node->WindowID = -1;
         ResizeNodeContainer(Screen, Node);
+    }
+}
+
+void ResizeElementInNode(tree_node *Node)
+{
+    if(Node)
+    {
+        ResizeElementInContainer(Node->WindowID, &Node->Container);
     }
 }

@@ -708,3 +708,15 @@ void ModifySubtreeSplitRatioFromWindow(const double &Offset)
         ModifySubtreeSplitRatio(KWMScreen.Current, Node, Offset);
     }
 }
+
+void ResizeElementInTree(screen_info *Screen, window_info *Window)
+{
+    Assert(Window, "ResizeElementInTree()")
+    if(DoesSpaceExistInMapOfScreen(Screen))
+    {
+        space_info *Space = GetActiveSpaceOfScreen(Screen);
+        tree_node *Node = GetNodeFromWindowID(Space->RootNode, Window->WID, Space->Mode);
+        if(Node)
+            ResizeElementInNode(Node);
+    }
+}

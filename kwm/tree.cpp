@@ -1,7 +1,6 @@
 #include "tree.h"
-#include "node.h"
+#include "node.h" // trees contain nodes; the next abstraction level down
 #include "space.h" // for GetActiveSpaceOfScreen()
-#include "windowref.h" // remove ResizeWindowToContainerSize
 
 extern kwm_path KWMPath;
 extern kwm_screen KWMScreen;
@@ -95,13 +94,12 @@ bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const std::vect
 }
 
 // TODO Add traversal function
-// foreach node in tree, if windowID != -1, ResizeWindowToContainerSize(Node)
 void ApplyNodeContainer(tree_node *Node, space_tiling_option Mode)
 {
     if(Node)
     {
         if(Node->WindowID != -1)
-            ResizeWindowToContainerSize(Node);
+            ResizeElementInNode(Node);
 
         if(Mode == SpaceModeBSP && Node->LeftChild)
             ApplyNodeContainer(Node->LeftChild, Mode);

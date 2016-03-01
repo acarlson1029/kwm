@@ -16,8 +16,7 @@ void SetWindowRefFocus(AXUIElementRef WindowRef, window_info *Window, bool Notif
 void SetWindowFocus(window_info *Window); // gets WindowRef from Window, calls SetWindowRefFocus
 void CenterWindowInsideNodeContainer(AXUIElementRef WindowRef, int *Xptr, int *Yptr, int *Wptr, int *Hptr); // changes WindowSize of windowref
 void SetWindowDimensions(AXUIElementRef WindowRef, window_info *Window, int X, int Y, int Width, int Height); // operates on window_info positioning & container
-void ResizeWindowToContainerSize(tree_node *Node); // doesnt use node, just container
-void ResizeWindowToContainerSize(window_info *Window); // grabs the Node containing Window and calls the NOde function
+void ResizeWindowToContainerSize(window_info *Window, node_container *Container);
 void ResizeWindowToContainerSize(); // calls ResizeWIndow on KWMFocus.Window
 void CenterWindow(screen_info *Screen, window_info *Window);
 void MoveFloatingWindow(int X, int Y);

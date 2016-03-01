@@ -294,18 +294,16 @@ void SetWindowDimensions(AXUIElementRef WindowRef, window_info *Window, int X, i
     CFRelease(NewWindowSize);
 }
 
-void ResizeWindowToContainerSize(tree_node *Node)
+void ResizeWindowToContainerSize(window_info *Window, node_container *Container)
 {
-    window_info *Window = GetWindowByID(Node->WindowID);
-
     if(Window)
     {
         AXUIElementRef WindowRef;
         if(GetWindowRef(Window, &WindowRef))
         {
             SetWindowDimensions(WindowRef, Window,
-                        Node->Container.X, Node->Container.Y,
-                        Node->Container.Width, Node->Container.Height);
+                        Container.X, Container.Y,
+                        Container.Width, Container.Height);
 
             if(WindowsAreEqual(Window, KWMFocus.Window))
                 KWMFocus.Cache = *Window;
@@ -313,22 +311,10 @@ void ResizeWindowToContainerSize(tree_node *Node)
     }
 }
 
-void ResizeWindowToContainerSize(window_info *Window)
-{
-    Assert(Window, "ResizeWindowToContainerSize()")
-    if(DoesSpaceExistInMapOfScreen(KWMScreen.Current))
-    {
-        space_info *Space = GetActiveSpaceOfScreen(KWMScreen.Current);
-        tree_node *Node = GetNodeFromWindowID(Space->RootNode, Window->WID, Space->Mode);
-        if(Node)
-            ResizeWindowToContainerSize(Node);
-    }
-}
-
 void ResizeWindowToContainerSize()
 {
     if(KWMFocus.Window)
-        ResizeWindowToContainerSize(KWMFocus.Window);
+        ResizeElementInTree(KWMFocus.Window);
 }
 
 void CenterWindow(screen_info *Screen, window_info *Window)
