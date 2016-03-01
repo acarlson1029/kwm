@@ -1,4 +1,4 @@
-#include "node.h"
+#include "container.h"
 #include "space.h"  // Used for the GetActiveSpaceOfScreen functions call; can do this in node.cpp and pass the Space?
 
 extern kwm_screen KWMScreen;

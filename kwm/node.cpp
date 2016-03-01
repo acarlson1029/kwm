@@ -1,3 +1,4 @@
+#include "node.h"
 #include "container.h"
 #include "window.h" // TODO remove ResizeWindowToContainerSize and get rid of this include.
 
