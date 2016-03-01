@@ -1,11 +1,10 @@
-/* #include "tree.h" */
 #include "container.h"
-#include "window.h"
+#include "window.h" // TODO remove ResizeWindowToContainerSize and get rid of this include.
 
 extern kwm_screen KWMScreen;
 extern kwm_tiling KWMTiling;
 
-tree_node *CreateRootNode()
+tree_node *CreateRootNode(screen_info *Screen)
 {
     tree_node Clear = {0};
     tree_node *RootNode = (tree_node*) malloc(sizeof(tree_node));
@@ -15,8 +14,7 @@ tree_node *CreateRootNode()
     RootNode->Parent = NULL;
     RootNode->LeftChild = NULL;
     RootNode->RightChild = NULL;
-    RootNode->Container.SplitRatio = KWMScreen.SplitRatio;
-    RootNode->Container.SplitMode = SplitModeUnset;
+    SetRootNodeContainer(Screen, &RootNode->Container);
 
     return RootNode;
 }
@@ -45,13 +43,13 @@ void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowI
     Assert(Parent, "CreateLeafNodePair()")
 
     Parent->WindowID = -1;
-    Parent->Container.SplitMode = SplitMode;
+    Parent->Container.SplitMode = SplitMode == SplitModeOptimal ? GetOptimalSplitMode(Parent->Container) : SplitMode;
     Parent->Container.SplitRatio = KWMScreen.SplitRatio;
 
     int LeftWindowID = KWMTiling.SpawnAsLeftChild ? SecondWindowID : FirstWindowID;
     int RightWindowID = KWMTiling.SpawnAsLeftChild ? FirstWindowID : SecondWindowID;
 
-    switch(SplitMode)
+    switch(Parent->Container.SplitMode)
     {
         case SplitModeVertical:
         {
@@ -120,5 +118,35 @@ void SwapNodeWindowIDs(tree_node *A, tree_node *B)
         B->WindowID = TempWindowID;
         ResizeWindowToContainerSize(A);
         ResizeWindowToContainerSize(B);
+    }
+}
+
+// Note - in Monocle Mode, every Node is a "Root" (i.e. no parent),so
+// every node is resized to the RootNodeContainer.
+// TODO -- Does this need an "OptimalSplitMode" boolean argument?
+void ResizeNodeContainer(screen_info *Screen, tree_node *Node)
+{
+    Assert(Node, "ResizeNodeContainer()")
+
+    // BSP Root Node or Monocle Node
+    if (Node && !Node->Parent)
+        SetRootNodeContainer(Screen, &Node->Container);
+    else
+        ResizeContainer(Screen, &Node->Container);
+}
+
+bool ModifyNodeSplitRatio(tree_node *Node, const double &Offset)
+{
+    if(!Node)
+        return false;
+
+    return ModifyContainerSplitRatio(&Node->Container, Offset);
+}
+
+void ToggleNodeSplitMode(tree_node *Node)
+{
+    if(Node)
+    {
+        ToggleContainerSplitMode(&Node->Container);
     }
 }

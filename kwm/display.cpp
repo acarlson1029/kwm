@@ -256,8 +256,10 @@ void ChangePaddingOfDisplay(const std::string &Side, int Offset)
     {
         if(Space->Mode == SpaceModeBSP)
         {
-            SetRootNodeContainer(Screen, &Space->RootNode->Container);
-            CreateNodeContainers(Screen, Space->RootNode, true);
+            // TODO - call tree.cpp::ResizeTree which calls SetRootNode and resizes children.
+            ResizeTreeNodes(Screen, Space->RootNode);
+            //SetRootNodeContainer(Screen, &Space->RootNode->Container);
+            //CreateNodeContainers(Screen, Space->RootNode, true);
         }
         else if(Space->Mode == SpaceModeMonocle)
         {
@@ -291,7 +293,7 @@ void ChangeGapOfDisplay(const std::string &Side, int Offset)
 
     if(Space->RootNode && Space->Mode == SpaceModeBSP)
     {
-        CreateNodeContainers(Screen, Space->RootNode, true);
+        ResizeTreeNodes(Screen, Space->RootNode);
         ApplyNodeContainer(Space->RootNode, Space->Mode);
     }
 }

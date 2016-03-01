@@ -177,8 +177,7 @@ tree_node *DeserializeNodeTree(std::vector<std::string> &Serialized)
         return NULL;
 
     DEBUG("Deserialize: Create Master")
-    tree_node *RootNode = CreateRootNode();
-    SetRootNodeContainer(KWMScreen.Current, &RootNode->Container);
+    tree_node *RootNode = CreateRootNode(KWMScreen.Current);
     DeserializeParentNode(RootNode, Serialized, 1);
     return RootNode;
 }

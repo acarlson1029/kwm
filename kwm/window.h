@@ -38,14 +38,14 @@ void AddWindowToTreeOfUnfocusedMonitor(screen_info *Screen, window_info *Window)
 void ShouldBSPTreeUpdate(screen_info *Screen, space_info *Space);
 void AddWindowToBSPTree(screen_info *Screen, int WindowID);
 void AddWindowToBSPTree();
-void RemoveWindowFromBSPTree(screen_info *Screen, int WindowID, bool Center, bool Refresh);
+void RemoveWindowFromBSPTree(screen_info *Screen, int WindowID, bool Refresh);
 void RemoveWindowFromBSPTree();
 
 void ShouldMonocleTreeUpdate(screen_info *Screen, space_info *Space);
 void AddWindowToMonocleTree(screen_info *Screen, int WindowID);
-void RemoveWindowFromMonocleTree(screen_info *Screen, int WindowID, bool Center);
+void RemoveWindowFromMonocleTree(screen_info *Screen, int WindowID);
 
-void ToggleWindowFloating(int WindowID, bool Center);
+void ToggleWindowFloating(int WindowID);
 void ToggleFocusedWindowFloating();
 void ToggleFocusedWindowParentContainer();
 void ToggleFocusedWindowFullscreen();
@@ -78,7 +78,6 @@ void CenterWindowInsideNodeContainer(AXUIElementRef WindowRef, int *Xptr, int *Y
 void SetWindowDimensions(AXUIElementRef WindowRef, window_info *Window, int X, int Y, int Width, int Height);
 void CenterWindow(screen_info *Screen, window_info *Window);
 void MoveFloatingWindow(int X, int Y);
-void ModifyContainerSplitRatio(double Offset);
 void ResizeWindowToContainerSize(tree_node *Node);
 void ResizeWindowToContainerSize(window_info *Window);
 void ResizeWindowToContainerSize();
@@ -95,5 +94,6 @@ bool GetWindowRef(window_info *Window, AXUIElementRef *WindowRef);
 bool GetWindowRefFromCache(window_info *Window, AXUIElementRef *WindowRef);
 bool IsApplicationInCache(int PID, std::vector<AXUIElementRef> *Elements);
 void FreeWindowRefCache(int PID);
+void ModifySubtreeSplitRatioFromWindow(const double &Offset);
 
 #endif

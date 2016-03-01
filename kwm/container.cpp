@@ -1,5 +1,5 @@
 #include "node.h"
-#include "space.h"
+#include "space.h"  // Used for the GetActiveSpaceOfScreen functions call; can do this in node.cpp and pass the Space?
 
 extern kwm_screen KWMScreen;
 
@@ -90,6 +90,7 @@ node_container CreateNodeContainer(screen_info *Screen, const node_container &Pa
     return Container;
 }
 
+// TODO -- can move the node logic up into node.cpp
 void CreateNodeContainerPair(screen_info *Screen, tree_node *Parent, const split_mode &SplitMode)
 {
     Assert(Parent, "CreateNodeContainerPair() Parent")
@@ -126,6 +127,7 @@ void SetRootNodeContainer(screen_info *Screen, node_container* Container)
     Container->Width = Screen->Width - Space->Offset.PaddingLeft - Space->Offset.PaddingRight;
     Container->Height = Screen->Height - Space->Offset.PaddingTop - Space->Offset.PaddingBottom;
     Container->SplitMode = GetOptimalSplitMode(*Container);
+    Container->SplitRatio = KWMScreen.SplitRatio;
 }
 
 void ChangeSplitRatio(double Value)
@@ -137,3 +139,23 @@ void ChangeSplitRatio(double Value)
     }
 }
 
+void ResizeContainer(screen_info *Screen, node_container *Container)
+{
+    *Container = CreateNodeContainer(Screen, *Container, Container->Type);
+}
+
+bool ModifyContainerSplitRatio(node_container *Container, const double &Offset)
+{
+    // TODO Define these as MAX OFFSET and MIN OFFSET somewhere in types.h
+    if(Container->SplitRatio + Offset <= 0.0 ||
+       Container->SplitRatio + Offset >= 1.0)
+        return false;
+
+    Container->SplitRatio += Offset;
+    return true;
+}
+
+void ToggleContainerSplitMode(node_container *Container)
+{
+    Container->SplitMode = Container->SplitMode == SplitModeVertical ? SplitModeHorizontal : SplitModeVertical;
+}

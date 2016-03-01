@@ -460,15 +460,15 @@ void KwmWindowCommand(std::vector<std::string> &Tokens)
         {
             space_info *Space = GetActiveSpaceOfScreen(KWMScreen.Current);
             tree_node *Node = GetNodeFromWindowID(Space->RootNode, KWMFocus.Window->WID, Space->Mode);
-            ToggleNodeSplitMode(KWMScreen.Current, Node->Parent);
+            ToggleSubtreeSplitMode(KWMScreen.Current, Node->Parent);
         }
         else if(Tokens[2] == "reduce" || Tokens[2] == "expand")
         {
             double Ratio = ConvertStringToDouble(Tokens[3]);
             if(Tokens[2] == "reduce")
-                ModifyContainerSplitRatio(-Ratio);
+                ModifySubtreeSplitRatioFromWindow(-Ratio);
             else if(Tokens[2] == "expand")
-                ModifyContainerSplitRatio(Ratio);
+                ModifySubtreeSplitRatioFromWindow(Ratio);
         }
         else if(Tokens[2] == "refresh")
         {
@@ -572,7 +572,7 @@ void KwmTreeCommand(std::vector<std::string> &Tokens)
             if(Space->Mode == SpaceModeBSP)
             {
                 RotateTree(Space->RootNode, ConvertStringToInt(Tokens[2]));
-                CreateNodeContainers(KWMScreen.Current, Space->RootNode, false);
+                ResizeTreeNodes(KWMScreen.Current, Space->RootNode);
                 ApplyNodeContainer(Space->RootNode, Space->Mode);
             }
         }

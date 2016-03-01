@@ -52,6 +52,15 @@ bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const std::vect
 */
 void DestroyNodeTree(tree_node *Node, space_tiling_option Mode);
 
+void AddElementToBSPTree(screen_info *Screen, tree_node *NewParent, int WindowID, const split_mode &SplitMode);
+void AddElementToMonocleTree(screen_info *Screen, tree_node *NewParent, int WindowID, const split_mode &SplitMode);
+void AddElementToTree(screen_info *Screen, tree_node *NewParent, int WindowID, const split_mode &SplitMode, const space_tiling_option &Mode);
+
+
+void RemoveElementFromBSPTree(screen_info *Screen, tree_node *Node);
+void RemoveElementFromMonocleTree(screen_info *Screen, tree_node *Node);
+void RemoveElementFromTree(screen_info *Screen, tree_node *Root, int WindowID, const space_tiling_option &Mode);
+
 /* Recursively swap left and right children according to Deg
     Input:
         Node - root of the subtree to start swapping
@@ -64,32 +73,9 @@ void DestroyNodeTree(tree_node *Node, space_tiling_option Mode);
 */
 void RotateTree(tree_node *Node, int Deg);
 
-/* TODO: Have traversal functions in tree.h and base functions in node.h */
-/* Recursively create Containers for Tree starting from Node.
-    Map:
-        Recursive node_container -> node_container
-    Input:
-        screen_info *Screen - for Container functions
-        tree_node *Node     - tree containing nodes to recursively process
-    Output:
-        tree_node *Node     - mutated children Containers
- */
-void ResizeNodeContainer(screen_info *Screen, tree_node *Node);
-
-/* Recursively create node_container pairs for Tree starting from Node.
-    Map:
-        Recursive node_container -> node_container
-    Input:
-        screen_info *Screen - for Container functions
-        tree_node *Node     - tree containing nodes to recursively process
-    Output:
-        tree_node *Node     - created children Containers
-*/
-void CreateNodeContainers(screen_info *Screen, tree_node *Node, bool OptimalSplit);
-
 /* Recursively resize all windows in nodes in subtree 
     Map:
-        Window Resize -> node
+        Window Resize -> tree
     Input:
         tree_node *Node - subtree containing nodes to be resized
         space_tiling_window_option Mode - whether we're in SpaceModeBSP
@@ -97,6 +83,18 @@ void CreateNodeContainers(screen_info *Screen, tree_node *Node, bool OptimalSpli
         tree_node *Node - resized windows in children
 */
 void ApplyNodeContainer(tree_node *Node, space_tiling_option Mode);
+
+/* Recursively resize all node containers in nodes in subtree.
+    Map:
+        Container Resize -> tree
+    Input:
+        Screen - passthrough to container functions
+        Root - the root node of the tree to resize containers for,
+               based off of Root.Container
+    Output:
+        tree_node *Root - mutate the containers of all nodes in the tree starting from Root.
+ */
+void ResizeTreeNodes(screen_info *Screen, tree_node *Root);
 
 /* Change split_mode for node, 
    recursively create new containers for subtree, and
@@ -109,7 +107,9 @@ void ApplyNodeContainer(tree_node *Node, space_tiling_option Mode);
                           containers all nodes in subtree, and 
                           window size in all nodes of subtree.
 */
-void ToggleNodeSplitMode(screen_info *Screen, tree_node *Node);
+void ToggleSubtreeSplitMode(screen_info *Screen, tree_node *Node);
+
+void ModifySubtreeSplitRatio(screen_info *Screen, tree_node *Root, const double &Offset);
 
 /* Tree traversal/selection */
 /* GET functions -- no mutation of inputs */
@@ -120,5 +120,7 @@ tree_node *GetNearestNodeToTheRight(tree_node *Node, space_tiling_option Mode);
 tree_node *GetNearestLeafNeighbour(tree_node *Node, space_tiling_option Mode);
 tree_node *GetFirstPseudoLeafNode(tree_node *Node);
 tree_node *GetNodeFromWindowID(tree_node *Node, int WindowID, space_tiling_option Mode);
+void PreOrderTraversal(void (*f)(screen_info *Screen, tree_node *Root), screen_info *Screen, tree_node *Root);
+tree_node *LevelOrderSearch(bool (*is_match)(tree_node *Root), tree_node *Root);
 
 #endif

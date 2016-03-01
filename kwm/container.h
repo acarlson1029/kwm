@@ -65,4 +65,9 @@ void SetRootNodeContainer(screen_info *Screen, node_container *Container);
 /* SET -- KWMScreen.SplitRatio */
 void ChangeSplitRatio(double Value);
 
+/* Mutate existing container based on Screen state */
+void ResizeContainer(screen_info *Screen, node_container *Container);
+bool ModifyContainerSplitRatio(node_container *Container, const double &Offset);
+
+void ToggleContainerSplitMode(node_container *Container);
 #endif

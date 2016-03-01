@@ -42,7 +42,10 @@ void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowI
     Output:
         tree_node* - populate elements with invalid/null/uninitialized data.
 */
-tree_node *CreateRootNode();
+tree_node *CreateRootNode(screen_info *Screen);
+
+/* Mutate Node->Container based on Screen state */
+void ResizeNodeContainer(screen_info *Screen, tree_node *Node);
 
 /* Node properties */
 bool IsLeafNode(tree_node *Node);
@@ -50,6 +53,7 @@ bool IsLeftChild(tree_node *Node);
 bool IsRightChild(tree_node *Node);
 bool IsLeftLeaf(tree_node *Node);
 bool IsRightLeaf(tree_node *Node);
+bool IsRootNode(tree_node *Node);
 
 // TODO -- This calls the recursive function ApplyNodeContainer
 /* Swap the WindowIDs in two nodes and resize them to their new node_container.
@@ -61,5 +65,8 @@ bool IsRightLeaf(tree_node *Node);
         B - mutate WindowID and A->Container
 */
 void SwapNodeWindowIDs(tree_node *A, tree_node *B);
+
+bool ModifyNodeSplitRatio(tree_node *Node, const double &Offset);
+void ToggleNodeSplitMode(tree_node *Node);
 
 #endif
