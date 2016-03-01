@@ -46,5 +46,8 @@ void SwapFocusedWindowWithNearest(int Shift);
 /* Automatically find current window and call the ModifySubtree function */
 void ModifySubtreeSplitRatioFromWindow(const double &Offset);
 
+void ResizeElementInTree(screen_info *Screen, window_info *Window);
+void ResizeWindowToContainerSize();
+
 #endif
 

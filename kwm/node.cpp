@@ -1,10 +1,11 @@
 #include "node.h"
 #include "container.h"
+#include "space.h" // for GetActiveSpaceOfScreen
 
 extern kwm_screen KWMScreen;
 extern kwm_tiling KWMTiling;
 
-tree_node *CreateRootNode(screen_info *Screen)
+tree_node *CreateRootNode(screen_info *Screen, const container_offset &Offset)
 {
     tree_node Clear = {0};
     tree_node *RootNode = (tree_node*) malloc(sizeof(tree_node));
@@ -14,7 +15,7 @@ tree_node *CreateRootNode(screen_info *Screen)
     RootNode->Parent = NULL;
     RootNode->LeftChild = NULL;
     RootNode->RightChild = NULL;
-    SetRootNodeContainer(Screen, &RootNode->Container);
+    SetRootNodeContainer(*Screen, Offset, &RootNode->Container);
 
     return RootNode;
 }
@@ -23,6 +24,7 @@ tree_node *CreateLeafNode(screen_info *Screen, tree_node *Parent, int WindowID, 
 {
     Assert(Parent, "CreateLeafNode()")
 
+    space_info *Space = GetActiveSpaceOfScreen(Screen);
     tree_node Clear = {0};
     tree_node *Leaf = (tree_node*) malloc(sizeof(tree_node));
     *Leaf = Clear;
@@ -30,7 +32,7 @@ tree_node *CreateLeafNode(screen_info *Screen, tree_node *Parent, int WindowID, 
     Leaf->Parent = Parent;
     Leaf->WindowID = WindowID;
 
-    Leaf->Container = CreateNodeContainer(Screen, Parent->Container, ContainerType);
+    Leaf->Container = CreateNodeContainer(Space->Offset, Parent->Container, ContainerType);
 
     Leaf->LeftChild = NULL;
     Leaf->RightChild = NULL;
@@ -128,11 +130,12 @@ void ResizeNodeContainer(screen_info *Screen, tree_node *Node)
 {
     Assert(Node, "ResizeNodeContainer()")
 
+    space_info *Space = GetActiveSpaceOfScreen(Screen);
     // BSP Root Node or Monocle Node
     if (Node && !Node->Parent)
-        SetRootNodeContainer(Screen, &Node->Container);
+        SetRootNodeContainer(*Screen, Space->Offset, &Node->Container);
     else
-        ResizeContainer(Screen, &Node->Container);
+        ResizeContainer(Space->Offset, &Node->Container);
 }
 
 bool ModifyNodeSplitRatio(tree_node *Node, const double &Offset)
@@ -156,6 +159,7 @@ void SetElementInNode(screen_info *Screen, tree_node *Node, const int &WindowID)
     if(Node)
     {
         Node->WindowID = WindowID;
+        space_info *Space = GetActiveSpaceOfScreen(Screen);
         ResizeNodeContainer(Screen, Node);
     }
 }
@@ -165,6 +169,7 @@ void ClearElementInNode(screen_info *Screen, tree_node *Node)
     if(Node)
     {
         Node->WindowID = -1;
+        space_info *Space = GetActiveSpaceOfScreen(Screen);
         ResizeNodeContainer(Screen, Node);
     }
 }

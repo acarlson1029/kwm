@@ -111,6 +111,7 @@ void ApplyNodeContainer(tree_node *Node, space_tiling_option Mode)
 
 void ResizeTreeNodes(screen_info *Screen, tree_node *Root)
 {
+    space_info *Space = GetActiveSpaceOfScreen(Screen);
     PreOrderTraversal(ResizeNodeContainer, Screen, Root);
 }
 

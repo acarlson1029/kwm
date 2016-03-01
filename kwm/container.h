@@ -13,10 +13,10 @@
     Outputs:
         node_container - split node_container based on the input Node
  */
-node_container LeftVerticalContainerSplit(screen_info *Screen, const node_container &Container);
-node_container RightVerticalContainerSplit(screen_info *Screen, const node_container &Container);
-node_container UpperHorizontalContainerSplit(screen_info *Screen, const node_container &Container);
-node_container LowerHorizontalContainerSplit(screen_info *Screen, const node_container &Container);
+node_container LeftVerticalContainerSplit(const container_offset &Offset, const node_container &Container);
+node_container RightVerticalContainerSplit(const container_offset &Offset, const node_container &Container);
+node_container UpperHorizontalContainerSplit(const container_offset &Offset, const node_container &Container);
+node_container LowerHorizontalContainerSplit(const container_offset &Offset, const node_container &Container);
 
 /* Determine whether to split Vertically or Horizontally based on Node->Container.
     Map:
@@ -38,7 +38,7 @@ split_mode GetOptimalSplitMode(const node_container &Container);
     Output:
         node_container - new container dimensions for split.
 */
-node_container CreateNodeContainer(screen_info *Screen, const node_container &ParentContainer, const container_type &ContainerType);
+node_container CreateNodeContainer(const container_offset &Offset, const node_container &ParentContainer, const container_type &ContainerType);
 
 /* Mux SplitMode to select which ContainerTypes to use for CreateNodeContainer
     Map:
@@ -50,7 +50,7 @@ node_container CreateNodeContainer(screen_info *Screen, const node_container &Pa
     Output:
         tree_node *Parent - mutate Left and Right children containers
 */
-void CreateNodeContainerPair(screen_info *Screen, tree_node *Parent, const split_mode &SplitMode);
+void CreateNodeContainerPair(const container_offset &Offset, tree_node *Parent, const split_mode &SplitMode);
 
 /* Create Container for RootNode
     Map:
@@ -60,13 +60,13 @@ void CreateNodeContainerPair(screen_info *Screen, tree_node *Parent, const split
     Output:
         node_container *Container
 */
-void SetRootNodeContainer(screen_info *Screen, node_container *Container);
+void SetRootNodeContainer(const screen_info &Screen, const container_offset &Offset, node_container *Container);
 
 /* SET -- KWMScreen.SplitRatio */
 void ChangeSplitRatio(double Value);
 
 /* Mutate existing container based on Screen state */
-void ResizeContainer(screen_info *Screen, node_container *Container);
+void ResizeContainer(const container_offset &Offset, node_container *Container);
 bool ModifyContainerSplitRatio(node_container *Container, const double &Offset);
 
 void ToggleContainerSplitMode(node_container *Container);

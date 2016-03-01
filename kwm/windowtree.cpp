@@ -720,3 +720,10 @@ void ResizeElementInTree(screen_info *Screen, window_info *Window)
             ResizeElementInNode(Node);
     }
 }
+
+void ResizeWindowToContainerSize()
+{
+    if(KWMFocus.Window)
+        ResizeElementInTree(KWMScreen.Current, KWMFocus.Window);
+}
+

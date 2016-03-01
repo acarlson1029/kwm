@@ -302,19 +302,13 @@ void ResizeWindowToContainerSize(window_info *Window, node_container *Container)
         if(GetWindowRef(Window, &WindowRef))
         {
             SetWindowDimensions(WindowRef, Window,
-                        Container.X, Container.Y,
-                        Container.Width, Container.Height);
+                        Container->X, Container->Y,
+                        Container->Width, Container->Height);
 
             if(WindowsAreEqual(Window, KWMFocus.Window))
                 KWMFocus.Cache = *Window;
         }
     }
-}
-
-void ResizeWindowToContainerSize()
-{
-    if(KWMFocus.Window)
-        ResizeElementInTree(KWMFocus.Window);
 }
 
 void CenterWindow(screen_info *Screen, window_info *Window)

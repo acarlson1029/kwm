@@ -261,15 +261,13 @@ void ChangePaddingOfDisplay(const std::string &Side, int Offset)
         {
             // TODO - call tree.cpp::ResizeTree which calls SetRootNode and resizes children.
             ResizeTreeNodes(Screen, Space->RootNode);
-            //SetRootNodeContainer(Screen, &Space->RootNode->Container);
-            //CreateNodeContainers(Screen, Space->RootNode, true);
         }
         else if(Space->Mode == SpaceModeMonocle)
         {
             tree_node *CurrentNode = Space->RootNode;
             while(CurrentNode)
             {
-                SetRootNodeContainer(Screen, &CurrentNode->Container);
+                SetRootNodeContainer(*Screen, Space->Offset, &CurrentNode->Container);
                 CurrentNode = CurrentNode->RightChild;
             }
         }

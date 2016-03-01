@@ -1,49 +1,43 @@
 #include "container.h"
-#include "windowref.h" // used for ResizeWindowToContainerSize
-#include "space.h"  // Used for the GetActiveSpaceOfScreen functions call; can do this in node.cpp and pass the Space?
 #include "window.h" // containers hold windows; windows are the next abstraction level down
+#include "windowref.h" // used for ResizeWindowToContainerSize
 
 extern kwm_screen KWMScreen;
 
-node_container LeftVerticalContainerSplit(screen_info *Screen, const node_container &Container)
+node_container LeftVerticalContainerSplit(const container_offset &Offset, const node_container &Container)
 {
-    space_info *Space = GetActiveSpaceOfScreen(Screen);
-
     node_container LeftContainer = Container;
 
-    LeftContainer.Width = (Container.Width * Container.SplitRatio) - (Space->Offset.VerticalGap / 2);
+    LeftContainer.Width = (Container.Width * Container.SplitRatio) - (Offset.VerticalGap / 2);
 
     return LeftContainer;
 }
 
-node_container RightVerticalContainerSplit(screen_info *Screen, const node_container &Container)
+node_container RightVerticalContainerSplit(const container_offset &Offset, const node_container &Container)
 {
-    space_info *Space = GetActiveSpaceOfScreen(Screen);
     node_container RightContainer = Container;
 
-    RightContainer.X = Container.X + (Container.Width * Container.SplitRatio) + (Space->Offset.VerticalGap / 2);
-    RightContainer.Width = (Container.Width * (1 - Container.SplitRatio)) - (Space->Offset.VerticalGap / 2);
+    RightContainer.X = Container.X + (Container.Width * Container.SplitRatio) + (Offset.VerticalGap / 2);
+    RightContainer.Width = (Container.Width * (1 - Container.SplitRatio)) - (Offset.VerticalGap / 2);
 
     return RightContainer;
 }
 
-node_container UpperHorizontalContainerSplit(screen_info *Screen, const node_container &Container)
+node_container UpperHorizontalContainerSplit(const container_offset &Offset, const node_container &Container)
 {
-    space_info *Space = GetActiveSpaceOfScreen(Screen);
     node_container UpperContainer = Container;
 
-    UpperContainer.Height = (Container.Height * Container.SplitRatio) - (Space->Offset.HorizontalGap / 2);
+    UpperContainer.Height = (Container.Height * Container.SplitRatio) - (Offset.HorizontalGap / 2);
 
     return UpperContainer;
 }
 
-node_container LowerHorizontalContainerSplit(screen_info *Screen, const node_container &Container)
+node_container LowerHorizontalContainerSplit(const container_offset &Offset, const node_container &Container)
 {
-    space_info *Space = GetActiveSpaceOfScreen(Screen);
     node_container LowerContainer = Container;
 
-    LowerContainer.Y = Container.Y + (Container.Height * Container.SplitRatio) + (Space->Offset.HorizontalGap / 2);
-    LowerContainer.Height = (Container.Height * (1 - Container.SplitRatio)) - (Space->Offset.HorizontalGap / 2);
+    LowerContainer.Y = Container.Y + (Container.Height * Container.SplitRatio) + (Offset.HorizontalGap / 2);
+    LowerContainer.Height = (Container.Height * (1 - Container.SplitRatio)) - (Offset.HorizontalGap / 2);
 
     return LowerContainer;
 }
@@ -53,7 +47,7 @@ split_mode GetOptimalSplitMode(const node_container &Container)
     return (Container.Width / Container.Height) >= 1.618 ? SplitModeVertical : SplitModeHorizontal;
 }
 
-node_container CreateNodeContainer(screen_info *Screen, const node_container &ParentContainer, const container_type &ContainerType)
+node_container CreateNodeContainer(const container_offset &Offset, const node_container &ParentContainer, const container_type &ContainerType)
 {
     node_container Container;
 
@@ -61,19 +55,19 @@ node_container CreateNodeContainer(screen_info *Screen, const node_container &Pa
     {
         case ContainerLeft:
         {
-            Container = LeftVerticalContainerSplit(Screen, ParentContainer);
+            Container = LeftVerticalContainerSplit(Offset, ParentContainer);
         } break;
         case ContainerRight:
         {
-            Container = RightVerticalContainerSplit(Screen, ParentContainer);
+            Container = RightVerticalContainerSplit(Offset, ParentContainer);
         } break;
         case ContainerUpper:
         {
-            Container = UpperHorizontalContainerSplit(Screen, ParentContainer);
+            Container = UpperHorizontalContainerSplit(Offset, ParentContainer);
         } break;
         case ContainerLower:
         {
-            Container = LowerHorizontalContainerSplit(Screen, ParentContainer);
+            Container = LowerHorizontalContainerSplit(Offset, ParentContainer);
         } break;
         case ContainerRoot:
         default:
@@ -93,7 +87,7 @@ node_container CreateNodeContainer(screen_info *Screen, const node_container &Pa
 }
 
 // TODO -- can move the node logic up into node.cpp
-void CreateNodeContainerPair(screen_info *Screen, tree_node *Parent, const split_mode &SplitMode)
+void CreateNodeContainerPair(const container_offset &Offset, tree_node *Parent, const split_mode &SplitMode)
 {
     Assert(Parent, "CreateNodeContainerPair() Parent")
 
@@ -101,13 +95,13 @@ void CreateNodeContainerPair(screen_info *Screen, tree_node *Parent, const split
     {
         case SplitModeVertical:
         {
-            Parent->LeftChild->Container = CreateNodeContainer(Screen, Parent->Container, ContainerLeft);
-            Parent->RightChild->Container = CreateNodeContainer(Screen, Parent->Container, ContainerRight);
+            Parent->LeftChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerLeft);
+            Parent->RightChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerRight);
         } break;
         case SplitModeHorizontal:
         {
-            Parent->LeftChild->Container = CreateNodeContainer(Screen, Parent->Container, ContainerUpper);
-            Parent->RightChild->Container = CreateNodeContainer(Screen, Parent->Container, ContainerLower);
+            Parent->LeftChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerUpper);
+            Parent->RightChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerLower);
         } break;
         default:
         {
@@ -117,17 +111,15 @@ void CreateNodeContainerPair(screen_info *Screen, tree_node *Parent, const split
     }
 }
 
-void SetRootNodeContainer(screen_info *Screen, node_container* Container)
+void SetRootNodeContainer(const screen_info &Screen, const container_offset &Offset, node_container* Container)
 {
     Assert(Container, "SetRootNodeContainer()")
 
-    space_info *Space = GetActiveSpaceOfScreen(Screen);
-
     Container->Type = ContainerRoot;
-    Container->X = Screen->X + Space->Offset.PaddingLeft;
-    Container->Y = Screen->Y + Space->Offset.PaddingTop;
-    Container->Width = Screen->Width - Space->Offset.PaddingLeft - Space->Offset.PaddingRight;
-    Container->Height = Screen->Height - Space->Offset.PaddingTop - Space->Offset.PaddingBottom;
+    Container->X = Screen.X + Offset.PaddingLeft;
+    Container->Y = Screen.Y + Offset.PaddingTop;
+    Container->Width = Screen.Width - Offset.PaddingLeft - Offset.PaddingRight;
+    Container->Height = Screen.Height - Offset.PaddingTop - Offset.PaddingBottom;
     Container->SplitMode = GetOptimalSplitMode(*Container);
     Container->SplitRatio = KWMScreen.SplitRatio;
 }
@@ -141,9 +133,9 @@ void ChangeSplitRatio(double Value)
     }
 }
 
-void ResizeContainer(screen_info *Screen, node_container *Container)
+void ResizeContainer(const container_offset &Offset, node_container *Container)
 {
-    *Container = CreateNodeContainer(Screen, *Container, Container->Type);
+    *Container = CreateNodeContainer(Offset, *Container, Container->Type);
 }
 
 bool ModifyContainerSplitRatio(node_container *Container, const double &Offset)

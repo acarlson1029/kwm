@@ -14,6 +14,7 @@ void CreateDeserializedNodeContainer(tree_node *Node)
 {
     split_mode SplitMode = Node->Parent->Container.SplitMode;
     container_type ContainerType;
+    space_info *Space = GetActiveSpaceOfScreen(KWMScreen.Current);
 
     switch(SplitMode)
     {
@@ -31,7 +32,7 @@ void CreateDeserializedNodeContainer(tree_node *Node)
         } break;
     }
 
-    Node->Container = CreateNodeContainer(KWMScreen.Current, Node->Parent->Container, ContainerType);
+    Node->Container = CreateNodeContainer(Space->Offset, Node->Parent->Container, ContainerType);
 }
 
 void FillDeserializedTree(tree_node *RootNode)
