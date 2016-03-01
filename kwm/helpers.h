@@ -12,5 +12,6 @@ double ConvertStringToDouble(std::string Double);
 unsigned int ConvertHexStringToInt(std::string Hex);
 color ConvertHexRGBAToColor(unsigned int Color);
 void CreateColorFormat(color *Color);
+std::string GetUTF8String(CFStringRef Temp);
 
 #endif

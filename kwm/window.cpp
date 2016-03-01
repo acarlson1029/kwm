@@ -5,6 +5,7 @@
 #include "notifications.h"
 #include "border.h"
 #include "node.h"
+#include "application.h"
 
 #include <cmath>
 
@@ -26,32 +27,6 @@ bool WindowsAreEqual(window_info *Window, window_info *Match)
            Window->WID == Match->WID &&
            Window->Layer == Match->Layer)
             return true;
-    }
-
-    return false;
-}
-
-void AllowRoleForApplication(std::string Application, std::string Role)
-{
-    std::map<std::string, std::vector<CFTypeRef> >::iterator It = KWMTiling.AllowedWindowRoles.find(Application);
-    if(It == KWMTiling.AllowedWindowRoles.end())
-        KWMTiling.AllowedWindowRoles[Application] = std::vector<CFTypeRef>();
-
-    CFStringRef RoleRef = CFStringCreateWithCString(NULL, Role.c_str(), kCFStringEncodingMacRoman);
-    KWMTiling.AllowedWindowRoles[Application].push_back(RoleRef);
-}
-
-bool IsAppSpecificWindowRole(window_info *Window, CFTypeRef Role, CFTypeRef SubRole)
-{
-    std::map<std::string, std::vector<CFTypeRef> >::iterator It = KWMTiling.AllowedWindowRoles.find(Window->Owner);
-    if(It != KWMTiling.AllowedWindowRoles.end())
-    {
-        std::vector<CFTypeRef> &WindowRoles = It->second;
-        for(std::size_t RoleIndex = 0; RoleIndex < WindowRoles.size(); ++RoleIndex)
-        {
-            if(CFEqual(Role, WindowRoles[RoleIndex]) || CFEqual(SubRole, WindowRoles[RoleIndex]))
-                return true;
-        }
     }
 
     return false;
@@ -108,37 +83,6 @@ bool FilterWindowList(screen_info *Screen)
 
     KWMTiling.WindowLst = FilteredWindowLst;
     return true;
-}
-
-bool IsApplicationCapturedByScreen(window_info *Window)
-{
-    return KWMTiling.CapturedAppLst.find(Window->Owner) != KWMTiling.CapturedAppLst.end();
-}
-
-void CaptureApplication(window_info *Window)
-{
-    if(IsApplicationCapturedByScreen(Window))
-    {
-        int CapturedID = KWMTiling.CapturedAppLst[Window->Owner];
-        screen_info *Screen = GetDisplayFromScreenID(CapturedID);
-        if(Screen && Screen != GetDisplayOfWindow(Window))
-        {
-            MoveWindowToDisplay(Window, CapturedID, false);
-            SetWindowFocus(Window);
-            MoveCursorToCenterOfFocusedWindow();
-        }
-    }
-}
-
-bool IsApplicationFloating(window_info *Window)
-{
-    for(std::size_t WindowIndex = 0; WindowIndex < KWMTiling.FloatingAppLst.size(); ++WindowIndex)
-    {
-        if(Window->Owner == KWMTiling.FloatingAppLst[WindowIndex])
-            return true;
-    }
-
-    return false;
 }
 
 bool IsFocusedWindowFloating()
@@ -1377,27 +1321,6 @@ CGPoint GetCursorPos()
     return Cursor;
 }
 
-std::string GetUTF8String(CFStringRef Temp)
-{
-    std::string Result;
-
-    if(!CFStringGetCStringPtr(Temp, kCFStringEncodingUTF8))
-    {
-        CFIndex Length = CFStringGetLength(Temp);
-        CFIndex Bytes = 4 * Length + 1;
-        char *TempUTF8StringPtr = (char*) malloc(Bytes);
-
-        CFStringGetCString(Temp, TempUTF8StringPtr, Bytes, kCFStringEncodingUTF8);
-        if(TempUTF8StringPtr)
-        {
-            Result = TempUTF8StringPtr;
-            free(TempUTF8StringPtr);
-        }
-    }
-
-    return Result;
-}
-
 std::string GetWindowTitle(AXUIElementRef WindowRef)
 {
     CFStringRef Temp;
@@ -1531,20 +1454,6 @@ bool GetWindowRef(window_info *Window, AXUIElementRef *WindowRef)
 
     CFRelease(App);
     return Found;
-}
-
-bool IsApplicationInCache(int PID, std::vector<AXUIElementRef> *Elements)
-{
-    bool Result = false;
-    std::map<int, std::vector<AXUIElementRef> >::iterator It = KWMCache.WindowRefs.find(PID);
-
-    if(It != KWMCache.WindowRefs.end())
-    {
-        *Elements = It->second;
-        Result = true;
-    }
-
-    return Result;
 }
 
 bool GetWindowRefFromCache(window_info *Window, AXUIElementRef *WindowRef)
