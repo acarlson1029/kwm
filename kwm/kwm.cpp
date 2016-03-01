@@ -7,6 +7,7 @@
 #include "keys.h"
 #include "interpreter.h"
 #include "border.h"
+#include "windowtree.h"
 
 const std::string KwmCurrentVersion = "Kwm Version 1.1.2";
 

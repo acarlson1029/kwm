@@ -3,6 +3,8 @@
 #include "window.h"
 #include "tree.h"
 #include "border.h"
+#include "windowtree.h"
+#include "windowref.h"
 
 extern kwm_screen KWMScreen;
 extern kwm_focus KWMFocus;

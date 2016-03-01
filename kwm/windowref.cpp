@@ -6,6 +6,7 @@
 #include "notifications.h"
 #include "border.h"
 #include "tree.h" // for GetNodeFromWindowID()
+#include "windowtree.h"
 #include "display.h" // for GetDisplayOfWindow()
 
 extern kwm_focus KWMFocus;

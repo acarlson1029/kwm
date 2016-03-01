@@ -1,6 +1,7 @@
 #include "application.h"
 #include "window.h"
 #include "display.h"
+#include "windowref.h" // for SetWindowFocus() and MoveCursorToCenterOfFocusedWindow()
 
 extern kwm_tiling KWMTiling;
 extern kwm_cache KWMCache;

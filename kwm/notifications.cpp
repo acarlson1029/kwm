@@ -1,6 +1,7 @@
 #include "notifications.h"
 #include "window.h"
 #include "border.h"
+#include "windowref.h"
 
 extern kwm_screen KWMScreen;
 extern kwm_toggles KWMToggles;

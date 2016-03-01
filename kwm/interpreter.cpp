@@ -13,6 +13,9 @@
 #include "serialize.h"
 #include "node.h"
 #include "container.h"
+#include "application.h"
+#include "windowtree.h"
+#include "windowref.h"
 
 extern kwm_screen KWMScreen;
 extern kwm_toggles KWMToggles;
