@@ -44,6 +44,9 @@ void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowI
 */
 tree_node *CreateRootNode(screen_info *Screen);
 
+void SetElementInNode(screen_info *Screen, tree_node *Node, const int &WindowID);
+void ClearElementInNode(screen_info *Screen, tree_node *Node);
+
 /* Mutate Node->Container based on Screen state */
 void ResizeNodeContainer(screen_info *Screen, tree_node *Node);
 

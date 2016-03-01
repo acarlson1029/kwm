@@ -612,13 +612,8 @@ void AddWindowToMonocleTree(screen_info *Screen, int WindowID)
 
     space_info *Space = GetActiveSpaceOfScreen(Screen);
     tree_node *CurrentNode = GetLastLeafNode(Space->RootNode);
-    tree_node *NewNode = CreateRootNode(Screen);
 
-    NewNode->WindowID = WindowID;
-    CurrentNode->RightChild = NewNode;
-    NewNode->LeftChild = CurrentNode;
-
-    ApplyNodeContainer(NewNode, SpaceModeMonocle);
+    AddElementToTree(Screen, CurrentNode, WindowID, SplitModeUnset, SpaceModeMonocle);
 }
 
 void RemoveWindowFromMonocleTree(screen_info *Screen, int WindowID)
@@ -703,7 +698,7 @@ void ToggleFocusedWindowFloating()
         ToggleWindowFloating(KWMFocus.Window->WID);
 }
 
-void ToggleFocusedWindowParentContainer()
+void ToggleFocusedWindowParent()
 {
     if(!KWMFocus.Window || !DoesSpaceExistInMapOfScreen(KWMScreen.Current))
         return;
@@ -712,24 +707,8 @@ void ToggleFocusedWindowParentContainer()
     if(Space->Mode != SpaceModeBSP)
         return;
 
-    tree_node *Node = GetNodeFromWindowID(Space->RootNode, KWMFocus.Window->WID, Space->Mode);
-    if(Node && Node->Parent)
-    {
-        if(IsLeafNode(Node) && Node->Parent->WindowID == -1)
-        {
-            DEBUG("ToggleFocusedWindowParentContainer() Set Parent Container")
-            Node->Parent->WindowID = Node->WindowID;
-            ResizeWindowToContainerSize(Node->Parent);
-            UpdateBorder("focused");
-        }
-        else
-        {
-            DEBUG("ToggleFocusedWindowParentContainer() Restore Window Container")
-            Node->Parent->WindowID = -1;
-            ResizeWindowToContainerSize(Node);
-            UpdateBorder("focused");
-        }
-    }
+    if(ToggleElementInTree(KWMScreen.Current, Space->RootNode, KWMFocus.Window->WID, Space->Mode))
+        UpdateBorder("focused");
 }
 
 void ToggleFocusedWindowFullscreen()
@@ -738,33 +717,8 @@ void ToggleFocusedWindowFullscreen()
         return;
 
     space_info *Space = GetActiveSpaceOfScreen(KWMScreen.Current);
-    if(Space->Mode == SpaceModeBSP && !IsLeafNode(Space->RootNode))
-    {
-        tree_node *Node = NULL;
-        if(Space->RootNode->WindowID == -1)
-        {
-            Node = GetNodeFromWindowID(Space->RootNode, KWMFocus.Window->WID, Space->Mode);
-            if(Node)
-            {
-                DEBUG("ToggleFocusedWindowFullscreen() Set fullscreen")
-                Space->RootNode->WindowID = Node->WindowID;
-                ResizeWindowToContainerSize(Space->RootNode);
-                UpdateBorder("focused");
-            }
-        }
-        else
-        {
-            DEBUG("ToggleFocusedWindowFullscreen() Restore old size")
-            Space->RootNode->WindowID = -1;
-
-            Node = GetNodeFromWindowID(Space->RootNode, KWMFocus.Window->WID, Space->Mode);
-            if(Node)
-            {
-                ResizeWindowToContainerSize(Node);
-                UpdateBorder("focused");
-            }
-        }
-    }
+    if(ToggleElementInRoot(KWMScreen.Current, Space->RootNode, KWMFocus.Window->WID, Space->Mode))
+            UpdateBorder("focused");
 }
 
 void DetachAndReinsertWindow(int WindowID, int Degrees)

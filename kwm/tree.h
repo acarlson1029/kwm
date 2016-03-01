@@ -53,7 +53,7 @@ bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const std::vect
 void DestroyNodeTree(tree_node *Node, space_tiling_option Mode);
 
 void AddElementToBSPTree(screen_info *Screen, tree_node *NewParent, int WindowID, const split_mode &SplitMode);
-void AddElementToMonocleTree(screen_info *Screen, tree_node *NewParent, int WindowID, const split_mode &SplitMode);
+void AddElementToMonocleTree(screen_info *Screen, tree_node *NewParent, int WindowID);
 void AddElementToTree(screen_info *Screen, tree_node *NewParent, int WindowID, const split_mode &SplitMode, const space_tiling_option &Mode);
 
 
@@ -122,5 +122,9 @@ tree_node *GetFirstPseudoLeafNode(tree_node *Node);
 tree_node *GetNodeFromWindowID(tree_node *Node, int WindowID, space_tiling_option Mode);
 void PreOrderTraversal(void (*f)(screen_info *Screen, tree_node *Root), screen_info *Screen, tree_node *Root);
 tree_node *LevelOrderSearch(bool (*is_match)(tree_node *Root), tree_node *Root);
+
+// TODO Can these functions be combined?
+bool ToggleElementInTree(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode);
+bool ToggleElementInRoot(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode);
 
 #endif

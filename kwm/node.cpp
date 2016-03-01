@@ -151,3 +151,21 @@ void ToggleNodeSplitMode(tree_node *Node)
         ToggleContainerSplitMode(&Node->Container);
     }
 }
+
+void SetElementInNode(screen_info *Screen, tree_node *Node, const int &WindowID)
+{
+    if(Node)
+    {
+        Node->WindowID = WindowID;
+        ResizeNodeContainer(Screen, Node);
+    }
+}
+
+void ClearElementInNode(screen_info *Screen, tree_node *Node)
+{
+    if(Node)
+    {
+        Node->WindowID = -1;
+        ResizeNodeContainer(Screen, Node);
+    }
+}

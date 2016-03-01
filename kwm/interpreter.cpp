@@ -444,7 +444,7 @@ void KwmWindowCommand(std::vector<std::string> &Tokens)
         if(Tokens[2] == "fullscreen")
             ToggleFocusedWindowFullscreen();
         else if(Tokens[2] == "parent")
-            ToggleFocusedWindowParentContainer();
+            ToggleFocusedWindowParent();
         else if(Tokens[2] == "float")
             ToggleFocusedWindowFloating();
     }

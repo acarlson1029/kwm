@@ -47,7 +47,7 @@ void RemoveWindowFromMonocleTree(screen_info *Screen, int WindowID);
 
 void ToggleWindowFloating(int WindowID);
 void ToggleFocusedWindowFloating();
-void ToggleFocusedWindowParentContainer();
+void ToggleFocusedWindowParent();
 void ToggleFocusedWindowFullscreen();
 
 void DetachAndReinsertWindow(int WindowID, int Degrees);

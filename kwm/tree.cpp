@@ -322,7 +322,7 @@ void AddElementToBSPTree(screen_info *Screen, tree_node *NewParent, int WindowID
     }
 }
 
-void AddElementToMonocleTree(screen_info *Screen, tree_node *NewParent, int WindowID, const split_mode &SplitMode) // TODO replace WindowID with element
+void AddElementToMonocleTree(screen_info *Screen, tree_node *NewParent, int WindowID) // TODO replace WindowID with element
 {
     Assert(!NewParent->RightChild, "AddElementToMonocleTree()")
 
@@ -341,7 +341,7 @@ void AddElementToTree(screen_info *Screen, tree_node *NewParent, int WindowID, c
             AddElementToBSPTree(Screen, NewParent, WindowID, SplitMode);
             break;
         case SpaceModeMonocle:
-            AddElementToMonocleTree(Screen, NewParent, WindowID, SplitMode);
+            AddElementToMonocleTree(Screen, NewParent, WindowID);
             break;
 
         default:
@@ -449,3 +449,53 @@ void ModifySubtreeSplitRatio(screen_info *Screen, tree_node *Root, const double 
     }
 }
 
+bool ToggleElementInTree(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode)
+{
+    if(Mode != SpaceModeBSP)
+        return false;
+
+    tree_node *Node = GetNodeFromWindowID(Root, WindowID, SpaceModeBSP);
+
+    if(Node && Node->Parent)
+    {
+        if(IsLeafNode(Node) && Node->Parent->WindowID == -1) // TODO Add a function to check if node has elements or is just a parent.
+        {
+            DEBUG("ToggleElementInTree() Set Element In Node")
+            SetElementInNode(Screen, Node, WindowID);
+        }
+        else
+        {
+            DEBUG("ToggleElementInTree() Restore Element In Node")
+            ClearElementInNode(Screen, Node);
+        }
+        return true;
+    }
+
+    return false;
+}
+
+bool ToggleElementInRoot(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode)
+{
+    if(Mode != SpaceModeBSP || IsLeafNode(Root))
+        return false;
+
+    if(Root->WindowID == -1)
+    {
+        // TODO Should calling functions be trying to toggle invalid WindowIDs?
+        // This wastes cycles trying to find it.
+        tree_node *Node = GetNodeFromWindowID(Root, WindowID, Mode);
+        if(Node) // if it was found
+        {
+            DEBUG("ToggleElementInRoot() Set root element")
+            SetElementInNode(Screen, Root, WindowID);
+        }
+    }
+    else
+    {
+        DEBUG("ToggleElementInRoot() Clear root element")
+        ClearElementInNode(Screen, Root);
+        tree_node *Node = GetNodeFromWindowID(Root, WindowID, Mode);
+        SetElementInNode(Screen, Node, WindowID); // resize the window back to fit its container
+    }
+    return true;
+}
