@@ -288,7 +288,7 @@ void PreOrderTraversal(void (*f)(screen_info *Screen, tree_node *Root), screen_i
     }
 }
 
-tree_node *LevelOrderSearch(bool (*is_match)(tree_node *Root), tree_node *Root)
+tree_node *LevelOrderSearch(bool (*is_match)(tree_node *), tree_node *Root)
 {
     std::queue<tree_node*> qNode;
     

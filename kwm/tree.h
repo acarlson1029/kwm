@@ -52,14 +52,22 @@ bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const std::vect
 */
 void DestroyNodeTree(tree_node *Node, space_tiling_option Mode);
 
+/* Create new Nodes for Element, and insert them into the Tree */
 void AddElementToBSPTree(screen_info *Screen, tree_node *NewParent, int WindowID, const split_mode &SplitMode);
 void AddElementToMonocleTree(screen_info *Screen, tree_node *NewParent, int WindowID);
 void AddElementToTree(screen_info *Screen, tree_node *NewParent, int WindowID, const split_mode &SplitMode, const space_tiling_option &Mode);
 
-
+/* Remove Element from Tree, and delete the Node if necessary. Rearranges the Tree */
 void RemoveElementFromBSPTree(screen_info *Screen, tree_node *Node);
 void RemoveElementFromMonocleTree(screen_info *Screen, tree_node *Node);
 void RemoveElementFromTree(screen_info *Screen, tree_node *Root, int WindowID, const space_tiling_option &Mode);
+
+/* Promote Element in Tree. Assign the Element its Node's Parent, using its Container
+ * This is useful for things like toggling a Window to fill its parent container, or 
+ * toggling a window to go fullscreen (Root node container) */
+// TODO Can these functions be combined?
+bool ToggleElementInTree(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode);
+bool ToggleElementInRoot(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode);
 
 /* Recursively swap left and right children according to Deg
     Input:
@@ -120,11 +128,12 @@ tree_node *GetNearestNodeToTheRight(tree_node *Node, space_tiling_option Mode);
 tree_node *GetNearestLeafNeighbour(tree_node *Node, space_tiling_option Mode);
 tree_node *GetFirstPseudoLeafNode(tree_node *Node);
 tree_node *GetNodeFromWindowID(tree_node *Node, int WindowID, space_tiling_option Mode);
-void PreOrderTraversal(void (*f)(screen_info *Screen, tree_node *Root), screen_info *Screen, tree_node *Root);
-tree_node *LevelOrderSearch(bool (*is_match)(tree_node *Root), tree_node *Root);
 
-// TODO Can these functions be combined?
-bool ToggleElementInTree(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode);
-bool ToggleElementInRoot(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode);
+/* Traversal helper functions */
+
+/* Apply function *f to each Node in the Tree */
+void PreOrderTraversal(void (*f)(screen_info *Screen, tree_node *Root), screen_info *Screen, tree_node *Root);
+/* Search the Nodes in the tree, until is_match(Node) returns true */
+tree_node *LevelOrderSearch(bool (*is_match)(tree_node *), tree_node *Root);
 
 #endif
