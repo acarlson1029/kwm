@@ -132,7 +132,7 @@ tree_node *GetNodeFromWindowID(tree_node *Node, int WindowID, space_tiling_optio
 /* Traversal helper functions */
 
 /* Apply function *f to each Node in the Tree */
-void PreOrderTraversal(void (*f)(screen_info *Screen, tree_node *Root), screen_info *Screen, tree_node *Root);
+void PreOrderTraversal(void (*f)(screen_info *Screen, const container_offset &Offset, tree_node *Root), screen_info *Screen, const container_offset &Offset, tree_node *Root);
 /* Search the Nodes in the tree, until is_match(Node) returns true */
 tree_node *LevelOrderSearch(bool (*is_match)(tree_node *), tree_node *Root);
 

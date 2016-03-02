@@ -11,10 +11,10 @@ tree_node *CreateTreeFromWindowIDList(screen_info *Screen, const std::vector<win
     if(IsSpaceFloating(Screen->ActiveSpace))
         return NULL;
 
-    tree_node *RootNode = CreateRootNode(Screen);
+    space_info *Space = GetActiveSpaceOfScreen(Screen);
+    tree_node *RootNode = CreateRootNode(Screen, Space->Offset);
 
     bool Result = false;
-    space_info *Space = GetActiveSpaceOfScreen(Screen);
 
     if(Space->Mode == SpaceModeBSP)
         Result = CreateBSPTree(RootNode, Screen, Windows);
@@ -39,6 +39,7 @@ bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, const std::vector<w
     if(Windows.size() >= 2)
     {
         tree_node *Root = RootNode;
+        space_info *Space = GetActiveSpaceOfScreen(Screen);
         Root->WindowID = Windows[0]->WID;
         for(std::size_t WindowIndex = 1; WindowIndex < Windows.size(); ++WindowIndex)
         {
@@ -51,7 +52,7 @@ bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, const std::vector<w
             }
 
             DEBUG("CreateBSPTree() Create pair of leafs")
-            CreateLeafNodePair(Screen, Root, Root->WindowID, Windows[WindowIndex]->WID, SplitModeOptimal);
+            CreateLeafNodePair(Space->Offset, Root, Root->WindowID, Windows[WindowIndex]->WID, SplitModeOptimal);
             Root = RootNode;
         }
 
@@ -75,11 +76,12 @@ bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const std::vect
     if(!Windows.empty())
     {
         tree_node *Root = RootNode;
+        space_info *Space = GetActiveSpaceOfScreen(Screen);
         Root->WindowID = Windows[0]->WID;
 
         for(std::size_t WindowIndex = 1; WindowIndex < Windows.size(); ++WindowIndex)
         {
-            tree_node *Next = CreateRootNode(Screen);
+            tree_node *Next = CreateRootNode(Screen, Space->Offset);
             Next->WindowID = Windows[WindowIndex]->WID;
 
             Root->RightChild = Next;
@@ -112,7 +114,7 @@ void ApplyNodeContainer(tree_node *Node, space_tiling_option Mode)
 void ResizeTreeNodes(screen_info *Screen, tree_node *Root)
 {
     space_info *Space = GetActiveSpaceOfScreen(Screen);
-    PreOrderTraversal(ResizeNodeContainer, Screen, Root);
+    PreOrderTraversal(ResizeNodeContainer, Screen, Space->Offset, Root);
 }
 
 void DestroyNodeTree(tree_node *Node, space_tiling_option Mode)
@@ -277,13 +279,13 @@ tree_node *GetNearestNodeToTheRight(tree_node *Node, space_tiling_option Mode)
     return NULL;
 }
 
-void PreOrderTraversal(void (*f)(screen_info *Screen, tree_node *Root), screen_info *Screen, tree_node *Root)
+void PreOrderTraversal(void (*f)(screen_info *Screen, const container_offset &Offset, tree_node *Root), screen_info *Screen, const container_offset &Offset, tree_node *Root)
 {
     if(Root)
     {
-        f(Screen, Root);
-        PreOrderTraversal(f, Screen, Root->LeftChild);
-        PreOrderTraversal(f, Screen, Root->RightChild);
+        f(Screen, Offset, Root);
+        PreOrderTraversal(f, Screen, Offset, Root->LeftChild);
+        PreOrderTraversal(f, Screen, Offset, Root->RightChild);
     }
 }
 
@@ -317,7 +319,9 @@ void AddElementToBSPTree(screen_info *Screen, tree_node *NewParent, int WindowID
     {
         Assert((NewParent->WindowID !=-1), "AddNodeToTree()")
 
-        CreateLeafNodePair(Screen, NewParent, NewParent->WindowID, WindowID, SplitMode);
+        space_info *Space = GetActiveSpaceOfScreen(Screen);
+
+        CreateLeafNodePair(Space->Offset, NewParent, NewParent->WindowID, WindowID, SplitMode);
     }
 }
 
@@ -325,7 +329,8 @@ void AddElementToMonocleTree(screen_info *Screen, tree_node *NewParent, int Wind
 {
     Assert(!NewParent->RightChild, "AddElementToMonocleTree()")
 
-    tree_node *NewNode = CreateRootNode(Screen);
+    space_info *Space = GetActiveSpaceOfScreen(Screen);
+    tree_node *NewNode = CreateRootNode(Screen, Space->Offset);
 
     NewNode->WindowID = WindowID;
     NewNode->LeftChild = NewParent;
@@ -454,18 +459,19 @@ bool ToggleElementInTree(screen_info *Screen, tree_node *Root, const int &Window
         return false;
 
     tree_node *Node = GetNodeFromWindowID(Root, WindowID, SpaceModeBSP);
+    space_info *Space = GetActiveSpaceOfScreen(Screen);
 
     if(Node && Node->Parent)
     {
         if(IsLeafNode(Node) && Node->Parent->WindowID == -1) // TODO Add a function to check if node has elements or is just a parent.
         {
             DEBUG("ToggleElementInTree() Set Element In Node")
-            SetElementInNode(Screen, Node, WindowID);
+            SetElementInNode(Screen, Space->Offset, Node, WindowID);
         }
         else
         {
             DEBUG("ToggleElementInTree() Restore Element In Node")
-            ClearElementInNode(Screen, Node);
+            ClearElementInNode(Screen, Space->Offset, Node);
         }
         return true;
     }
@@ -478,6 +484,8 @@ bool ToggleElementInRoot(screen_info *Screen, tree_node *Root, const int &Window
     if(Mode != SpaceModeBSP || IsLeafNode(Root))
         return false;
 
+    space_info *Space = GetActiveSpaceOfScreen(Screen);
+
     if(Root->WindowID == -1)
     {
         // TODO Should calling functions be trying to toggle invalid WindowIDs?
@@ -486,15 +494,15 @@ bool ToggleElementInRoot(screen_info *Screen, tree_node *Root, const int &Window
         if(Node) // if it was found
         {
             DEBUG("ToggleElementInRoot() Set root element")
-            SetElementInNode(Screen, Root, WindowID);
+            SetElementInNode(Screen, Space->Offset, Root, WindowID);
         }
     }
     else
     {
         DEBUG("ToggleElementInRoot() Clear root element")
-        ClearElementInNode(Screen, Root);
+        ClearElementInNode(Screen, Space->Offset, Root);
         tree_node *Node = GetNodeFromWindowID(Root, WindowID, Mode);
-        SetElementInNode(Screen, Node, WindowID); // resize the window back to fit its container
+        SetElementInNode(Screen, Space->Offset, Node, WindowID); // resize the window back to fit its container
     }
     return true;
 }

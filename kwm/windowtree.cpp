@@ -727,3 +727,4 @@ void ResizeWindowToContainerSize()
         ResizeElementInTree(KWMScreen.Current, KWMFocus.Window);
 }
 
+

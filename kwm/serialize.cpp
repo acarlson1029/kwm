@@ -39,6 +39,7 @@ void FillDeserializedTree(tree_node *RootNode)
 {
     std::vector<window_info*> Windows = GetAllWindowsOnDisplay(KWMScreen.Current->ID);
     tree_node *Current = GetFirstLeafNode(RootNode);
+    space_info *Space = GetActiveSpaceOfScreen(KWMScreen.Current);
 
     std::size_t Counter = 0, Leafs = 0;
     while(Current)
@@ -64,7 +65,7 @@ void FillDeserializedTree(tree_node *RootNode)
             }
 
             DEBUG("FillDeserializedTree() Create pair of leafs")
-            CreateLeafNodePair(KWMScreen.Current, Root, Root->WindowID, Windows[Counter]->WID, GetOptimalSplitMode(Root->Container));
+            CreateLeafNodePair(Space->Offset, Root, Root->WindowID, Windows[Counter]->WID, GetOptimalSplitMode(Root->Container));
             Root = RootNode;
         }
     }
@@ -134,13 +135,14 @@ unsigned int DeserializeParentNode(tree_node *Parent, std::vector<std::string> &
 unsigned int DeserializeChildNode(tree_node *Parent, std::vector<std::string> &Serialized, unsigned int Index)
 {
     unsigned int LineNumber = Index;
+    space_info *Space = GetActiveSpaceOfScreen(KWMScreen.Current);
     for(;LineNumber < Serialized.size(); ++LineNumber)
     {
         std::string Line = Serialized[LineNumber];
         if(Line == "kwmc tree root create left")
         {
             DEBUG("Child: Create root")
-            Parent->LeftChild = CreateLeafNode(KWMScreen.Current, Parent, -1, ContainerLeft);
+            Parent->LeftChild = CreateLeafNode(Space->Offset, Parent, -1, ContainerLeft);
             CreateDeserializedNodeContainer(Parent->LeftChild);
             LineNumber = DeserializeParentNode(Parent->LeftChild, Serialized, LineNumber+1);
             return LineNumber;
@@ -148,7 +150,7 @@ unsigned int DeserializeChildNode(tree_node *Parent, std::vector<std::string> &S
         else if(Line == "kwmc tree root create right")
         {
             DEBUG("Child: Create root")
-            Parent->RightChild = CreateLeafNode(KWMScreen.Current, Parent, -1, ContainerRight);
+            Parent->RightChild = CreateLeafNode(Space->Offset, Parent, -1, ContainerRight);
             CreateDeserializedNodeContainer(Parent->RightChild);
             LineNumber = DeserializeParentNode(Parent->RightChild, Serialized, LineNumber+1);
             return LineNumber;
@@ -156,14 +158,14 @@ unsigned int DeserializeChildNode(tree_node *Parent, std::vector<std::string> &S
         else if(Line == "kwmc tree leaf create left")
         {
             DEBUG("Child: Create left leaf")
-            Parent->LeftChild = CreateLeafNode(KWMScreen.Current, Parent, -1, ContainerLeft);
+            Parent->LeftChild = CreateLeafNode(Space->Offset, Parent, -1, ContainerLeft);
             CreateDeserializedNodeContainer(Parent->LeftChild);
             return LineNumber;
         }
         else if(Line == "kwmc tree leaf create right")
         {
             DEBUG("Child: Create right leaf")
-            Parent->RightChild = CreateLeafNode(KWMScreen.Current, Parent, -1, ContainerRight);
+            Parent->RightChild = CreateLeafNode(Space->Offset, Parent, -1, ContainerRight);
             CreateDeserializedNodeContainer(Parent->RightChild);
             return LineNumber;
         }
@@ -178,7 +180,8 @@ tree_node *DeserializeNodeTree(std::vector<std::string> &Serialized)
         return NULL;
 
     DEBUG("Deserialize: Create Master")
-    tree_node *RootNode = CreateRootNode(KWMScreen.Current);
+    space_info *Space = GetActiveSpaceOfScreen(KWMScreen.Current);
+    tree_node *RootNode = CreateRootNode(KWMScreen.Current, Space->Offset);
     DeserializeParentNode(RootNode, Serialized, 1);
     return RootNode;
 }

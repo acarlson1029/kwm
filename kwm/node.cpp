@@ -1,6 +1,5 @@
 #include "node.h"
-#include "container.h"
-#include "space.h" // for GetActiveSpaceOfScreen
+#include "container.h" // nodes have containers
 
 extern kwm_screen KWMScreen;
 extern kwm_tiling KWMTiling;
@@ -20,11 +19,10 @@ tree_node *CreateRootNode(screen_info *Screen, const container_offset &Offset)
     return RootNode;
 }
 
-tree_node *CreateLeafNode(screen_info *Screen, tree_node *Parent, int WindowID, const container_type &ContainerType)
+tree_node *CreateLeafNode(const container_offset &Offset, tree_node *Parent, int WindowID, const container_type &ContainerType)
 {
     Assert(Parent, "CreateLeafNode()")
 
-    space_info *Space = GetActiveSpaceOfScreen(Screen);
     tree_node Clear = {0};
     tree_node *Leaf = (tree_node*) malloc(sizeof(tree_node));
     *Leaf = Clear;
@@ -32,7 +30,7 @@ tree_node *CreateLeafNode(screen_info *Screen, tree_node *Parent, int WindowID, 
     Leaf->Parent = Parent;
     Leaf->WindowID = WindowID;
 
-    Leaf->Container = CreateNodeContainer(Space->Offset, Parent->Container, ContainerType);
+    Leaf->Container = CreateNodeContainer(Offset, Parent->Container, ContainerType);
 
     Leaf->LeftChild = NULL;
     Leaf->RightChild = NULL;
@@ -40,7 +38,7 @@ tree_node *CreateLeafNode(screen_info *Screen, tree_node *Parent, int WindowID, 
     return Leaf;
 }
 
-void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowID, int SecondWindowID, const split_mode &SplitMode)
+void CreateLeafNodePair(const container_offset &Offset, tree_node *Parent, int FirstWindowID, int SecondWindowID, const split_mode &SplitMode)
 {
     Assert(Parent, "CreateLeafNodePair()")
 
@@ -55,13 +53,13 @@ void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowI
     {
         case SplitModeVertical:
         {
-            Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftWindowID, ContainerLeft);
-            Parent->RightChild = CreateLeafNode(Screen, Parent, RightWindowID, ContainerRight);
+            Parent->LeftChild = CreateLeafNode(Offset, Parent, LeftWindowID, ContainerLeft);
+            Parent->RightChild = CreateLeafNode(Offset, Parent, RightWindowID, ContainerRight);
         } break;
         case SplitModeHorizontal:
         {
-            Parent->LeftChild = CreateLeafNode(Screen, Parent, LeftWindowID, ContainerUpper);
-            Parent->RightChild = CreateLeafNode(Screen, Parent, RightWindowID, ContainerLower);
+            Parent->LeftChild = CreateLeafNode(Offset, Parent, LeftWindowID, ContainerUpper);
+            Parent->RightChild = CreateLeafNode(Offset, Parent, RightWindowID, ContainerLower);
         } break;
         default:
         {
@@ -126,16 +124,15 @@ void SwapNodeWindowIDs(tree_node *A, tree_node *B)
 // Note - in Monocle Mode, every Node is a "Root" (i.e. no parent),so
 // every node is resized to the RootNodeContainer.
 // TODO -- Does this need an "OptimalSplitMode" boolean argument?
-void ResizeNodeContainer(screen_info *Screen, tree_node *Node)
+void ResizeNodeContainer(screen_info *Screen, const container_offset &Offset, tree_node *Node)
 {
     Assert(Node, "ResizeNodeContainer()")
 
-    space_info *Space = GetActiveSpaceOfScreen(Screen);
     // BSP Root Node or Monocle Node
     if (Node && !Node->Parent)
-        SetRootNodeContainer(*Screen, Space->Offset, &Node->Container);
+        SetRootNodeContainer(*Screen, Offset, &Node->Container);
     else
-        ResizeContainer(Space->Offset, &Node->Container);
+        ResizeContainer(Offset, &Node->Container);
 }
 
 bool ModifyNodeSplitRatio(tree_node *Node, const double &Offset)
@@ -154,23 +151,21 @@ void ToggleNodeSplitMode(tree_node *Node)
     }
 }
 
-void SetElementInNode(screen_info *Screen, tree_node *Node, const int &WindowID)
+void SetElementInNode(screen_info *Screen, const container_offset &Offset, tree_node *Node, const int &WindowID)
 {
     if(Node)
     {
         Node->WindowID = WindowID;
-        space_info *Space = GetActiveSpaceOfScreen(Screen);
-        ResizeNodeContainer(Screen, Node);
+        ResizeNodeContainer(Screen, Offset, Node);
     }
 }
 
-void ClearElementInNode(screen_info *Screen, tree_node *Node)
+void ClearElementInNode(screen_info *Screen, const container_offset &Offset, tree_node *Node)
 {
     if(Node)
     {
         Node->WindowID = -1;
-        space_info *Space = GetActiveSpaceOfScreen(Screen);
-        ResizeNodeContainer(Screen, Node);
+        ResizeNodeContainer(Screen, Offset, Node);
     }
 }
 

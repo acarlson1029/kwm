@@ -16,7 +16,7 @@
     Output:
         tree_node (new)
 */
-tree_node *CreateLeafNode(screen_info *Screen, tree_node *Parent, int WindowID, const container_type &ContainerType);
+tree_node *CreateLeafNode(const container_offset &Offset, tree_node *Parent, int WindowID, const container_type &ContainerType);
 
 /* Create new children tree_nodes from Parent
     Map:
@@ -32,7 +32,7 @@ tree_node *CreateLeafNode(screen_info *Screen, tree_node *Parent, int WindowID, 
                             update its Container, 
                             and create two children leaf nodes
  */
-void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowID, int SecondWindowID, const split_mode &SplitMode);
+void CreateLeafNodePair(const container_offset &Offset, tree_node *Parent, int FirstWindowID, int SecondWindowID, const split_mode &SplitMode);
 
 /* Create an empty RootNode for the tree
     Map:
@@ -42,13 +42,13 @@ void CreateLeafNodePair(screen_info *Screen, tree_node *Parent, int FirstWindowI
     Output:
         tree_node* - populate elements with invalid/null/uninitialized data.
 */
-tree_node *CreateRootNode(screen_info *Screen);
+tree_node *CreateRootNode(screen_info *Screen, const container_offset &Offset);
 
-void SetElementInNode(screen_info *Screen, tree_node *Node, const int &WindowID);
-void ClearElementInNode(screen_info *Screen, tree_node *Node);
+void SetElementInNode(screen_info *Screen, const container_offset &Offset, tree_node *Node, const int &WindowID);
+void ClearElementInNode(screen_info *Screen, const container_offset &Offset, tree_node *Node);
 
 /* Mutate Node->Container based on Screen state */
-void ResizeNodeContainer(screen_info *Screen, tree_node *Node);
+void ResizeNodeContainer(screen_info *Screen, const container_offset &Offset, tree_node *Node);
 
 /* Node properties */
 bool IsLeafNode(tree_node *Node);
