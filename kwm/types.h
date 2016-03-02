@@ -1,6 +1,13 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+/* TODO -- Add a dimensions struct:
+struct dimensions
+{
+    <which data type?> X, Y, Width, Height
+};
+*/
+
 #include <Carbon/Carbon.h>
 
 #include <iostream>
@@ -78,6 +85,8 @@ extern "C" CFArrayRef CGSCopyManagedDisplaySpaces(const int cid);
 #define CGSDefaultConnection _CGSDefaultConnection()
 extern "C" int _CGSDefaultConnection(void);
 
+// Undocumented private OS X API call
+// return is CGWindowID*, second arg
 extern "C" AXError _AXUIElementGetWindow(AXUIElementRef, int *);
 
 enum focus_option
