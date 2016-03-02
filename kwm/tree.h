@@ -15,7 +15,7 @@
     Output:
         tree_node - Root of full tree.
 */
-tree_node *CreateTreeFromWindowIDList(screen_info *Screen, const std::vector<window_info*> &Windows);
+tree_node *CreateTreeFromWindowIDList(screen_info *Screen, const container_offset &Offset, const std::vector<window_info*> &Windows, const space_tiling_option &Mode);
 
 /* Create a BSP Tree starting at the root node from a list of windows. 
     Map:
@@ -28,7 +28,7 @@ tree_node *CreateTreeFromWindowIDList(screen_info *Screen, const std::vector<win
         tree_node* RootNode - mutate the RootNode to populate with children created in this function.
         bool - Success status of the tree creation process.
 */
-bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, const std::vector<window_info*> &Windows);
+bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, const container_offset &Offset, const std::vector<window_info*> &Windows);
 
 /* Create a Monocle Tree starting at the root node from a list of windows.
     Map:
@@ -41,7 +41,7 @@ bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, const std::vector<w
         tree_node* RootNode - mutate the RootNode to populate with children created in this function.
         bool - Success status of the tree creation process.
 */
-bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const std::vector<window_info*> &Windows);
+bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const container_offset &Offset, const std::vector<window_info*> &Windows);
 
 /* Recursively destroy the subtree and deallocate memory starting at Node
     Input:
@@ -53,21 +53,21 @@ bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const std::vect
 void DestroyNodeTree(tree_node *Node, space_tiling_option Mode);
 
 /* Create new Nodes for Element, and insert them into the Tree */
-void AddElementToBSPTree(screen_info *Screen, tree_node *NewParent, int WindowID, const split_mode &SplitMode);
-void AddElementToMonocleTree(screen_info *Screen, tree_node *NewParent, int WindowID);
-void AddElementToTree(screen_info *Screen, tree_node *NewParent, int WindowID, const split_mode &SplitMode, const space_tiling_option &Mode);
+void AddElementToBSPTree(const container_offset &Offset, tree_node *NewParent, int WindowID, const split_mode &SplitMode);
+void AddElementToMonocleTree(screen_info *Screen, const container_offset &Offset, tree_node *NewParent, int WindowID);
+void AddElementToTree(screen_info *Screen, const container_offset &Offset, tree_node *NewParent, int WindowID, const split_mode &SplitMode, const space_tiling_option &Mode);
 
 /* Remove Element from Tree, and delete the Node if necessary. Rearranges the Tree */
-void RemoveElementFromBSPTree(screen_info *Screen, tree_node *Node);
-void RemoveElementFromMonocleTree(screen_info *Screen, tree_node *Node);
-void RemoveElementFromTree(screen_info *Screen, tree_node *Root, int WindowID, const space_tiling_option &Mode);
+void RemoveElementFromBSPTree(screen_info *Screen, space_info *Space, tree_node *Node);
+void RemoveElementFromMonocleTree(space_info *Space, tree_node *Node);
+void RemoveElementFromTree(screen_info *Screen, space_info *Space, tree_node *Root, int WindowID, const space_tiling_option &Mode);
 
 /* Promote Element in Tree. Assign the Element its Node's Parent, using its Container
  * This is useful for things like toggling a Window to fill its parent container, or 
  * toggling a window to go fullscreen (Root node container) */
 // TODO Can these functions be combined?
-bool ToggleElementInTree(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode);
-bool ToggleElementInRoot(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode);
+bool ToggleElementInTree(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode, const container_offset &Offset);
+bool ToggleElementInRoot(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode, const container_offset &Offset);
 
 /* Recursively swap left and right children according to Deg
     Input:
@@ -102,7 +102,7 @@ void ApplyNodeContainer(tree_node *Node, space_tiling_option Mode);
     Output:
         tree_node *Root - mutate the containers of all nodes in the tree starting from Root.
  */
-void ResizeTreeNodes(screen_info *Screen, tree_node *Root);
+void ResizeTreeNodes(screen_info *Screen, const container_offset &Offset, tree_node *Root);
 
 /* Change split_mode for node, 
    recursively create new containers for subtree, and
@@ -115,9 +115,9 @@ void ResizeTreeNodes(screen_info *Screen, tree_node *Root);
                           containers all nodes in subtree, and 
                           window size in all nodes of subtree.
 */
-void ToggleSubtreeSplitMode(screen_info *Screen, tree_node *Node);
+void ToggleSubtreeSplitMode(screen_info *Screen, const container_offset &Offset, tree_node *Node);
 
-void ModifySubtreeSplitRatio(screen_info *Screen, tree_node *Root, const double &Offset);
+void ModifySubtreeSplitRatio(screen_info *Screen, tree_node *Root, const double &Delta, const container_offset &Offset, const space_tiling_option &Mode);
 
 /* Tree traversal/selection */
 /* GET functions -- no mutation of inputs */

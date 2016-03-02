@@ -238,12 +238,18 @@ void CreateWindowNodeTree(screen_info *Screen, std::vector<window_info*> *Window
 
         Space->Initialized = true;
         Space->Offset = Screen->Offset;
-        Space->RootNode = CreateTreeFromWindowIDList(Screen, *Windows);
+        if(!IsSpaceFloating(Screen->ActiveSpace))
+            Space->RootNode = CreateTreeFromWindowIDList(Screen, Space->Offset, *Windows, Space->Mode);
+        else
+            Space->RootNode = NULL;
     }
     else if(Space->Initialized)
     {
-        Space->RootNode = CreateTreeFromWindowIDList(Screen, *Windows);
-        ResizeTreeNodes(Screen, Space->RootNode);
+        if(!IsSpaceFloating(Screen->ActiveSpace))
+            Space->RootNode = CreateTreeFromWindowIDList(Screen, Space->Offset, *Windows, Space->Mode);
+        else
+            Space->RootNode = NULL;
+        ResizeTreeNodes(Screen, Space->Offset, Space->RootNode);
         ApplyNodeContainer(Space->RootNode, Space->Mode);
     }
 
@@ -427,7 +433,7 @@ void AddWindowToBSPTree(screen_info *Screen, int WindowID)
         CurrentNode = GetNodeFromWindowID(RootNode, KWMScreen.MarkedWindow, Space->Mode);
         ClearMarkedWindow();
     }
-    AddElementToTree(Screen, CurrentNode, WindowID, KWMScreen.SplitMode, SpaceModeBSP);
+    AddElementToTree(Screen, Space->Offset, CurrentNode, WindowID, KWMScreen.SplitMode, SpaceModeBSP);
 }
 
 void AddWindowToBSPTree()
@@ -446,7 +452,7 @@ void AddWindowToMonocleTree(screen_info *Screen, int WindowID)
     space_info *Space = GetActiveSpaceOfScreen(Screen);
     tree_node *CurrentNode = GetLastLeafNode(Space->RootNode);
 
-    AddElementToTree(Screen, CurrentNode, WindowID, SplitModeUnset, SpaceModeMonocle);
+    AddElementToTree(Screen, Space->Offset, CurrentNode, WindowID, SplitModeUnset, SpaceModeMonocle);
 }
 
 void AddWindowToTreeOfUnfocusedMonitor(screen_info *Screen, window_info *Window)
@@ -479,7 +485,7 @@ void AddWindowToTreeOfUnfocusedMonitor(screen_info *Screen, window_info *Window)
             DEBUG("AddWindowToTreeOfUnfocusedMonitor() Monocle Space")
             CurrentNode = GetLastLeafNode(Space->RootNode);
         }
-        AddElementToTree(Screen, CurrentNode, Window->WID, KWMScreen.SplitMode, Space->Mode);
+        AddElementToTree(Screen, Space->Offset, CurrentNode, Window->WID, KWMScreen.SplitMode, Space->Mode);
     }
     else
     {
@@ -494,7 +500,7 @@ void RemoveWindowFromBSPTree(screen_info *Screen, int WindowID, bool Refresh)
         return;
 
     space_info *Space = GetActiveSpaceOfScreen(Screen);
-    RemoveElementFromTree(Screen, Space->RootNode, WindowID, Space->Mode);
+    RemoveElementFromTree(Screen, Space, Space->RootNode, WindowID, Space->Mode);
 
     if(Refresh)
     {
@@ -517,7 +523,7 @@ void RemoveWindowFromMonocleTree(screen_info *Screen, int WindowID)
         return;
 
     space_info *Space = GetActiveSpaceOfScreen(Screen);
-    RemoveElementFromTree(Screen, Space->RootNode, WindowID, Space->Mode);
+    RemoveElementFromTree(Screen, Space, Space->RootNode, WindowID, Space->Mode);
 
     SetWindowFocusByNode(GetFirstLeafNode(Space->RootNode));
     MoveCursorToCenterOfFocusedWindow();
@@ -593,7 +599,7 @@ void ToggleFocusedWindowParent()
     if(Space->Mode != SpaceModeBSP)
         return;
 
-    if(ToggleElementInTree(KWMScreen.Current, Space->RootNode, KWMFocus.Window->WID, Space->Mode))
+    if(ToggleElementInTree(KWMScreen.Current, Space->RootNode, KWMFocus.Window->WID, Space->Mode, Space->Offset))
         UpdateBorder("focused");
 }
 
@@ -603,7 +609,7 @@ void ToggleFocusedWindowFullscreen()
         return;
 
     space_info *Space = GetActiveSpaceOfScreen(KWMScreen.Current);
-    if(ToggleElementInRoot(KWMScreen.Current, Space->RootNode, KWMFocus.Window->WID, Space->Mode))
+    if(ToggleElementInRoot(KWMScreen.Current, Space->RootNode, KWMFocus.Window->WID, Space->Mode, Space->Offset))
             UpdateBorder("focused");
 }
 
@@ -705,7 +711,7 @@ void ModifySubtreeSplitRatioFromWindow(const double &Offset)
             return;
 
         tree_node *Node = GetNodeFromWindowID(Root, KWMFocus.Window->WID, Space->Mode);
-        ModifySubtreeSplitRatio(KWMScreen.Current, Node, Offset);
+        ModifySubtreeSplitRatio(KWMScreen.Current, Node, Offset, Space->Offset, Space->Mode);
     }
 }
 
