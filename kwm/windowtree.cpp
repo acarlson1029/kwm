@@ -4,9 +4,9 @@
 #include "tree.h"
 #include "space.h"
 #include "display.h"
-#include "application.h"
-#include "node.h"
-#include "border.h"
+#include "application.h" // IsApplicationFloating
+#include "node.h" // IsLeafNode, SwapNodeWindowIDs, ResizeElementInNode
+#include "border.h" //UpdateBorder
 
 extern kwm_screen KWMScreen;
 extern kwm_focus KWMFocus;

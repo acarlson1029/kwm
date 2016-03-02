@@ -21,6 +21,7 @@ void CenterWindow(screen_info *Screen, window_info *Window);
 void MoveFloatingWindow(int X, int Y);
 void MoveCursorToCenterOfWindow(window_info *Window); // immediately gets the WindowRef
 void MoveCursorToCenterOfFocusedWindow(); // just calls MoveCursorToCenterOfWindow on KWMFocus.Window
+void FreeWindowRefCache(int PID);
 
 /* QUERY */
 bool IsWindowNonResizable(AXUIElementRef WindowRef, window_info *Window, CFTypeRef NewWindowPos, CFTypeRef NewWindowSize);

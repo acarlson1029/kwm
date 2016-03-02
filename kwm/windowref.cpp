@@ -1,13 +1,13 @@
 #include "windowref.h"
-#include "helpers.h" // for GetUTF8String()
-#include "application.h" // todo determine whichfor
-#include "window.h"
-#include "space.h"
-#include "notifications.h"
-#include "border.h"
-#include "tree.h" // for GetNodeFromWindowID()
-#include "windowtree.h"
-#include "display.h" // for GetDisplayOfWindow()
+#include "helpers.h"      // GetUTF8String()
+#include "application.h"  // IsApplicationFloating
+#include "window.h"       // IsFocusedWindowFloating, WindowsAreEqual, IsWindowFloating
+#include "space.h"        // IsActiveSpaceFloating, GetActiveSpaceOfScreen, DoesSpaceExistInMapOfScreen
+#include "notifications.h"// CreateApplicationNotifications
+#include "border.h"       // UpdateBorder
+#include "tree.h"         // GetNodeFromWindowID()
+#include "windowtree.h"   // RemoveWindowFromBSPTree, RemoveWindowFromMonocleTree
+#include "display.h"      // GetDisplayOfWindow()
 
 extern kwm_focus KWMFocus;
 extern kwm_cache KWMCache;
@@ -375,15 +375,18 @@ bool IsWindowNonResizable(AXUIElementRef WindowRef, window_info *Window, CFTypeR
     if(SizeError == kAXErrorSuccess)
     {
         PosError = AXUIElementSetAttributeValue(WindowRef, kAXPositionAttribute, NewWindowPos);
+        // Why are we setting the size again?
         SizeError = AXUIElementSetAttributeValue(WindowRef, kAXSizeAttribute, NewWindowSize);
     }
 
     if(PosError != kAXErrorSuccess || SizeError != kAXErrorSuccess)
     {
+        // Why are we doing any of this in the function IsWindowNonResizable ?
         KWMTiling.FloatingWindowLst.push_back(Window->WID);
         screen_info *Screen = GetDisplayOfWindow(Window);
         if(DoesSpaceExistInMapOfScreen(Screen))
         {
+            // TODO can just have one RemoveWindowFromTree(..., Space->Mode)
             space_info *Space = GetActiveSpaceOfScreen(Screen);
             if(Space->Mode == SpaceModeBSP)
                 RemoveWindowFromBSPTree(Screen, Window->WID, false);
@@ -395,5 +398,19 @@ bool IsWindowNonResizable(AXUIElementRef WindowRef, window_info *Window, CFTypeR
     }
 
     return false;
+}
+
+void FreeWindowRefCache(int PID)
+{
+    std::map<int, std::vector<AXUIElementRef> >::iterator It = KWMCache.WindowRefs.find(PID);
+
+    if(It != KWMCache.WindowRefs.end())
+    {
+        int NumElements = KWMCache.WindowRefs[PID].size();
+        for(int RefIndex = 0; RefIndex < NumElements; ++RefIndex)
+            CFRelease(KWMCache.WindowRefs[PID][RefIndex]);
+
+        KWMCache.WindowRefs[PID].clear();
+    }
 }
 

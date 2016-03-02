@@ -1,6 +1,6 @@
 #include "container.h"
-#include "window.h" // containers hold windows; windows are the next abstraction level down
-#include "windowref.h" // used for ResizeWindowToContainerSize
+#include "window.h"    // containers hold windows; windows are the next abstraction level down
+#include "windowref.h" // ResizeWindowToContainerSize
 
 extern kwm_screen KWMScreen;
 

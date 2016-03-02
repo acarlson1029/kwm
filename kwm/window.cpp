@@ -1,12 +1,9 @@
 #include "window.h"
-#include "display.h"
-#include "space.h"
-#include "tree.h"
-#include "notifications.h"
-#include "border.h"
-#include "node.h"
-#include "application.h"
-#include "windowref.h"
+#include "display.h" // GetDisplayOfWindow
+#include "space.h" // IsSpaceTransitionInProgress, IsActiveSpaceManaged
+#include "border.h" // ClearBorder, UpdateBorder
+#include "application.h" // IsAppSpecificWindowRole, CaptureApplication, IsApplicationFloating
+#include "windowref.h" // GetWindowFocusedByOSX, SetWindowFocus, GetWindowRef
 
 #include <cmath>
 
@@ -422,20 +419,6 @@ bool GetWindowRole(window_info *Window, CFTypeRef *Role, CFTypeRef *SubRole)
     }
 
     return Result;
-}
-
-void FreeWindowRefCache(int PID)
-{
-    std::map<int, std::vector<AXUIElementRef> >::iterator It = KWMCache.WindowRefs.find(PID);
-
-    if(It != KWMCache.WindowRefs.end())
-    {
-        int NumElements = KWMCache.WindowRefs[PID].size();
-        for(int RefIndex = 0; RefIndex < NumElements; ++RefIndex)
-            CFRelease(KWMCache.WindowRefs[PID][RefIndex]);
-
-        KWMCache.WindowRefs[PID].clear();
-    }
 }
 
 void GetWindowInfo(const void *Key, const void *Value, void *Context)
