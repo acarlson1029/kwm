@@ -126,6 +126,9 @@ bool GetWindowRefFromCache(window_info *Window, AXUIElementRef *WindowRef);
         `->WID
     [M] WindowRef - the resulting WindowRef
 
+    Global References:
+        KWMCache.WindowRefs
+
     Mutations:
         KWMCache.WindowRefs[Window->PID] - push back the AppWindowRef
 
