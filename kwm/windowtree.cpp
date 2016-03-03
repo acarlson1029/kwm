@@ -305,6 +305,7 @@ void ShouldBSPTreeUpdate(screen_info *Screen, space_info *Space)
     {
         std::vector<int> WindowIDsInTree;
 
+        // TODO Replace this loop with a regular leaf traversal function.
         tree_node *CurrentNode = GetFirstLeafNode(Space->RootNode);
         while(CurrentNode)
         {
@@ -365,6 +366,7 @@ void ShouldMonocleTreeUpdate(screen_info *Screen, space_info *Space)
         DEBUG("ShouldMonocleTreeUpdate() Remove Window")
         std::vector<int> WindowIDsInTree;
 
+        // TODO -- Replace this with a traversal function
         tree_node *CurrentNode = Space->RootNode;
         while(CurrentNode)
         {
@@ -421,7 +423,7 @@ void AddWindowToBSPTree(screen_info *Screen, int WindowID)
 
     if(KWMScreen.MarkedWindow == -1 && UseFocusedContainer)
     {
-        CurrentNode = GetNodeFromWindowID(RootNode, KWMFocus.Window->WID, Space->Mode);
+        CurrentNode = GetNodeFromWindowID(RootNode, KWMFocus.Window->WID, Space->Mode); // TODO: change Space->Mode to SpaceModeBSP
     }
     else if(DoNotUseMarkedContainer || (KWMScreen.MarkedWindow == -1 && !UseFocusedContainer))
     {
@@ -430,7 +432,7 @@ void AddWindowToBSPTree(screen_info *Screen, int WindowID)
     }
     else
     {
-        CurrentNode = GetNodeFromWindowID(RootNode, KWMScreen.MarkedWindow, Space->Mode);
+        CurrentNode = GetNodeFromWindowID(RootNode, KWMScreen.MarkedWindow, Space->Mode); // TODO: change Space->Mode to SpaceModeBSP
         ClearMarkedWindow();
     }
     AddElementToTree(Screen, Space->Offset, CurrentNode, WindowID, KWMScreen.SplitMode, SpaceModeBSP);
@@ -456,7 +458,7 @@ void AddWindowToMonocleTree(screen_info *Screen, int WindowID)
 }
 
 void AddWindowToTreeOfUnfocusedMonitor(screen_info *Screen, window_info *Window)
-{
+ {
     if(!Screen || !Window || Screen == GetDisplayOfWindow(Window))
         return;
 
@@ -500,7 +502,7 @@ void RemoveWindowFromBSPTree(screen_info *Screen, int WindowID, bool Refresh)
         return;
 
     space_info *Space = GetActiveSpaceOfScreen(Screen);
-    RemoveElementFromTree(Screen, Space, Space->RootNode, WindowID, Space->Mode);
+    RemoveElementFromTree(Screen, Space, Space->RootNode, WindowID, Space->Mode); // TODO hardcode the Space->Mode to SpaceModeBSP
 
     if(Refresh)
     {
@@ -523,14 +525,14 @@ void RemoveWindowFromMonocleTree(screen_info *Screen, int WindowID)
         return;
 
     space_info *Space = GetActiveSpaceOfScreen(Screen);
-    RemoveElementFromTree(Screen, Space, Space->RootNode, WindowID, Space->Mode);
+    RemoveElementFromTree(Screen, Space, Space->RootNode, WindowID, Space->Mode); // TODO hard-code SpaceModeMonocle
 
     SetWindowFocusByNode(GetFirstLeafNode(Space->RootNode));
     MoveCursorToCenterOfFocusedWindow();
 }
 
 void ToggleWindowFloating(int WindowID)
-{
+
     if(IsWindowOnActiveSpace(WindowID) &&
        KWMScreen.Current->Space[KWMScreen.Current->ActiveSpace].Mode == SpaceModeBSP)
     {
