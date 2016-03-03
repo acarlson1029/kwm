@@ -71,13 +71,15 @@ bool GetWindowRefFromCache(window_info *Window, AXUIElementRef *WindowRef)
 
     if(IsCached)
     {
-        for(std::size_t ElementIndex = 0; ElementIndex < Elements.size(); ++ElementIndex)
+        std::vector<AXUIElementRef>::iterator ElementIt, end;
+        for(ElementIt = Elements.begin(), end = Elements.end(); ElementIt != end; ++ElementIt)
         {
             int AppWindowRefWID = -1;
-            _AXUIElementGetWindow(Elements[ElementIndex], &AppWindowRefWID);
+            // Set AppWidowRefWID to the value of *ElementIt
+            _AXUIElementGetWindow(*ElementIt, &AppWindowRefWID);
             if(AppWindowRefWID == Window->WID)
             {
-                *WindowRef = Elements[ElementIndex];
+                *WindowRef = *ElementIt;
                 return true;
             }
         }
@@ -347,22 +349,21 @@ void MoveFloatingWindow(int X, int Y)
     }
 }
 
-void MoveCursorToCenterOfWindow(window_info *Window)
+void MoveCursorToCenterOfWindow(AXUIElementRef WindowRef)
 {
-    Assert(Window, "MoveCursorToCenterOfWindow()")
-    AXUIElementRef WindowRef;
-    if(GetWindowRef(Window, &WindowRef))
-    {
-        CGPoint WindowPos = GetWindowPos(WindowRef);
-        CGSize WindowSize = GetWindowSize(WindowRef);
-        CGWarpMouseCursorPosition(CGPointMake(WindowPos.x + WindowSize.width / 2, WindowPos.y + WindowSize.height / 2));
-    }
+    CGPoint WindowPos = GetWindowPos(WindowRef);
+    CGSize WindowSize = GetWindowSize(WindowRef);
+    CGWarpMouseCursorPosition(CGPointMake(WindowPos.x + WindowSize.width / 2, WindowPos.y + WindowSize.height / 2));
 }
 
 void MoveCursorToCenterOfFocusedWindow()
 {
     if(KWMToggles.UseMouseFollowsFocus && KWMFocus.Window)
-        MoveCursorToCenterOfWindow(KWMFocus.Window);
+    {
+        AXUIElementRef WindowRef;
+        if(GetWindowRef(KWMFocus.Window, &WindowRef))
+            MoveCursorToCenterOfWindow(WindowRef);
+    }
 }
 
 bool IsWindowNonResizable(AXUIElementRef WindowRef, window_info *Window, CFTypeRef NewWindowPos, CFTypeRef NewWindowSize)

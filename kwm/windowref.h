@@ -20,33 +20,34 @@
 		notifications that describe state changes.
 */
 
-/* GET */
 /* Get the Window Title from a WindowRef
 
     Map:
-        WindowRef -> std::string WindowTitle
+        WindowRef ~> WindowInfo
 
 	Parameters:
-        WindowRef - the reference to the window
+        WindowRef - the reference to the Window
 
 	Return:
-		std::string WindowTItle - the title of the window
+		std::string WindowTitle - the title of the window
 
 	Called Functions:
 		AXUIElementCopyAttributeValue(..., kAXTitleAttribute, ...)	
-		GetUTF8String(...)
 		CFStringGetCStringPtr(..., kCSFStringEncodingMacRoman)
+        helpers::GetUTF8String(...)
 
 	Calling Functions:
 		interpreter::FocusedAXObserverCallback(.., AXUIElementRef, .., ..)
-		
+
+    Notes:
+      - Only called by interpreter
 */
 std::string GetWindowTitle(AXUIElementRef WindowRef);
 
-/* Get the window Size from a WindowRef
+/* Get the Window Size from a WindowRef
 
 	Map:
-		WindowRef -> WindowSize
+		WindowRef ~> WindowInfo
 
 	Parameters:
 		WindowRef - the reference to the window
@@ -59,15 +60,15 @@ std::string GetWindowTitle(AXUIElementRef WindowRef);
 		AXValueGetValue(.., kAXValueCGSizeType, ..)
 	
 	Calling Functions:
-		CenterWindowInsideNodeContainer(AXUIElementRef, ...)
-		MoveCursorToCenterOfWindow(...)
+        windowref::CenterWindowInsideNodeContainer(AXUIElementRef, ...)
+        windowref::MoveCursorToCenterOfWindow(...)
 */
 CGSize GetWindowSize(AXUIElementRef WindowRef);
 
 /* Get the Window Position from a WindowRef
 
 	Map:
-		WindowRef -> Window Position
+		WindowRef ~> WindowInfo
 
 	Parameters:
 		WindowRef - the reference to the window
@@ -80,85 +81,88 @@ CGSize GetWindowSize(AXUIElementRef WindowRef);
 		AXValueGetValue(.., kAXValueCGPointType, ..)
 
 	Calling Functions:
-		CenterWindowInsideNodeContainer(AXUIElementRef, ...)
-		MoveFloatingWindow(...)
-		MoveCursorToCenterOfWindow(...)
+        windowref::CenterWindowInsideNodeContainer(AXUIElementRef, ...)
+		windowref::MoveFloatingWindow(...)
+		windowref::MoveCursorToCenterOfWindow(...)
 */
 CGPoint GetWindowPos(AXUIElementRef WindowRef);
 
 /* Get the WindowRef from cache, if exists, else set KWMCache to empty for PID
  
     Map:
-        Window->PID -> WindowRef
+        Window ~> WindowRef
         
     Parameters:
         Window - the Window
-    [M] WindowRef - the reference to the Window, storing the lookup result
+    [M] WindowRef - the reference to the Window
 
     Mutations:
-        KWMCache.WindowRefs[Window->PID] - empty vector
+        WindowRef - stores the result of the lookup, if true, else invalid
+        KWMCache.WindowRefs[Window->PID] - empty vector (if PID not cached)
     
     Return:
-        bool - true  : window was found in the cache
-               false : the window was not found in the cache
+        bool - true  : WindowRef was found in cache
+               false : WindowRef not found in cache
 
     Called Functions:
-        IsApplicationInCache(Window->PID, ...)
+        application::IsApplicationInCache(Window->PID, ...)
         _AXUIElementGetWindow(...)
         
     Calling Functions:
-        GetWindowRef(Window, WindowRef)
-
-    Notes:
-        Function doesn't need Window, just Window->PID.
+        windowref::GetWindowRef(Window, WindowRef)
 */
 bool GetWindowRefFromCache(window_info *Window, AXUIElementRef *WindowRef);
 
 /* Get the WindowRef of the given Window
+
     Map:
-        Window -> WindowRef
+        Window ~> WindowRef
 
     Parameters:
         Window - the Window to get the reference for
-        `->Owner
-        `->Name
-        `->PID
-        `->WID
     [M] WindowRef - the resulting WindowRef
 
     Global References:
-        KWMCache.WindowRefs
+    [M] KWMCache.WindowRefs
 
     Mutations:
+        WindowRef - store the result in this variable
         KWMCache.WindowRefs[Window->PID] - push back the AppWindowRef
 
     Return:
         bool - whether the WindowRef was found
 
     Called Functions:
-        GetWindowRefFromCache(Window, WindowRef)
+        windowref::GetWindowRefFromCache(Window, WindowRef)
+        windowref::FreeWindowRefCache(Window->PID)
         AXUIElementCreateApplication(Window->PID)
         AXUIElementCopyAttributeValue(.., kAXWindowsAttribute, ..)
-        FreeWindowRefCache(Window->PID)
         CFArrayGetValueAtIndex(...)
         _AXUIElementGetWindow(...)
 
     Calling Functions:
-        GetWindowRole(Window, ...)
-        SetWindowFocus(Window, ...)
-        ResizeWindowToContainerSize(Window, ...)
-        CenterWindow(.., Window)
-        MoveFloatingWindow(...)
-        MoveCursorToCenterOfWindow(Window)
+        window::GetWindowRole(Window, ...)
+        windowref::SetWindowFocus(Window, ...)
+        windowref::ResizeWindowToContainerSize(Window, ...)
+        windowref::CenterWindow(.., Window)
+        windowref::MoveFloatingWindow(...)
+        windowref::MoveCursorToCenterOfWindow(Window)
+
+    Notes:
+      - Should GetWindowRole move down into the windowref layer?
 */
 bool GetWindowRef(window_info *Window, AXUIElementRef *WindowRef);
 
 /* Get the WID of the currently focused Window (from OS X)
+
     Map:
-        <osx focused window> -> WindowWID
+        WindowRef ~> WindowID
 
     Parameters:
     [M] WindowWID - the WID of the focused window in OS X
+
+    Mutations:
+        WindowWID - set the resulting WID in this parameter (invalid if returned false)
 
     Return:
         bool - true : the WindowID was found
@@ -175,72 +179,68 @@ bool GetWindowRef(window_info *Window, AXUIElementRef *WindowRef);
 */
 bool GetWindowFocusedByOSX(int *WindowWID);
 
-/* SET */
-/* Set the window as focused in OS X, the Tree, the KWM globals, and register Notifications.
+/* Set the Window as Focused in OS X, the Tree, the KWM globals; register Notifications.
+
     Map:
-        Window & Ref -> make Focused window
+        WindowRef ~> KWM, Tree, WindowRef
 
     Parameters:
     [M] WindowRef - the reference to the Window
         Window - the Window
         Notification - whether notifications exist for Window->PID
 
+    Global References:
+    [M] KWMFocus.Window
+    [M] KWMFocus.PSN
+    [M] KWMFocus.Cache
+        KWMFocus.PID
+        KWMFocus.Observer
+    [M] KWMMode.Focus
+    [M] KWMScreen.Current->(ActiveSpace)
+        KWMToggles.EnableTilingMode
+
+
     Mutations:
-        KWMFocus.Window:   KWMFocus.Cache
-        KWMFocus.PSN:      PSN of Window->PID (input)
-        KWMFocus.Cache:    Window (input)
-        KWMScreen.Focus:   IsFocusedWindowFloating() ? FocusModeStandby : FocusModeAutoraise
-        ActiveSpace->FocusedNode: NODE(Window->WID)
+        WindowRef          set as focused in OS X
+        KWMFocus.Window:   set to KWMFocus.Cache
+        KWMFocus.PSN:      set to PSN of Window->PID (input)
+        KWMFocus.Cache:    set to Window (input)
+        KWMScreen.Focus:   set to IsFocusedWindowFloating() ? FocusModeStandby : FocusModeAutoraise
+        KWMScreen.Current->(ActiveSpace)->FocusedNode: set to NodeOf(Window->WID)
     [C] notifications::CreateApplicationNotifications()
 
     Return:
         (void)
 
-    Global References:
-        KWMFocus:
-        [M] Window
-            `->PID
-        [M] PSN
-        [M] Cache
-            Observer
-
-        KWMMode:
-        [M] Focus = IsFocusedWindowFloating() ? FocusModeStandby : FocusModeAutoraise
-
-        KWMScreen:
-            Current
-        [M]   - Active Space ->FocusedNode
-
-        KWMToggles:
-            EnableTilingMode
-
     Called Functions:
+        notifications::CreateApplicationNotifications()
+        space::IsActiveSpaceFloating()
+        space::GetActiveSpaceOfScreen(...)
+        tree::GetNodeFromWindowID
+        window::IsFocusedWindowFloating()
+        border::UpdateBorder(...)
         GetProcessForPID(Window->PID, ..)
         AXUIElementSetAttributeValue(WindowRef, kAXMainAttribute, kCFBooleanTrue);
         AXUIElementSetAttributeValue(WindowRef, kAXFocusedAttribute, kCFBooleanTrue);
         AXUIElementPerformAction(WindowRef, kAXRaiseAction);
         SetFrontProcessWithOptions(.., kSetFrontProcessFrontWindowOnly);
-        IsActiveSpaceFloating()
-        notifications::CreateApplicationNotifications()
-        UpdateBorder(...)
-        space::GetActiveSpaceOfScreen(...)
-        tree::GetNodeFromWindowID
-        window::IsFocusedWindowFloating()
 
     Calling Functions:
         notifications::FocusedAXObserverCallback(.., Element, true)
-        SetWindowFocus(Window)
+        windowref::SetWindowFocus(Window)
 
     Notes:
-        This function has tendrils everywhere.. keep an eye out for repeated
+      - This function has tendrils everywhere.. keep an eye out for repeated
         use of the above functions.
+
+    TODO: refactor SetWindowRefFocus
 */
 void SetWindowRefFocus(AXUIElementRef WindowRef, window_info *Window, bool Notification); // does tree lookup to set focused node
 
-/* Set the Window as focused (with SetWindowRefFocus)
+/* Set the Window as Focused (with SetWindowRefFocus)
 
     Map:
-        Window -> SetWindowRefFocus(...)
+        Window ~> WindowRef
 
     Parameters:
         Window - the Window to focus
@@ -252,17 +252,17 @@ void SetWindowRefFocus(AXUIElementRef WindowRef, window_info *Window, bool Notif
         (void)
 
     Called Functions:
-        SetWindowRefFocus(Window, .., false)
+        windowref::SetWindowRefFocus(Window, .., false)
 
     Calling Functions:
         application::CaptureApplication(Window)
         window::FocusWindowOfOSX()
         window::FocusWindowBelowCursor()
-        SetWindowFocusByNode(...)
-        FocusWindowByID(...)
-        ShiftWindowFocusDirected(...)
-        ShouldBSPTreeUpdate(...)
-        ShouldMonocleTreeUpdate(...)
+        windowtree::SetWindowFocusByNode(...)
+        windowtree::FocusWindowByID(...)
+        windowtree::ShiftWindowFocusDirected(...)
+        windowtree::ShouldBSPTreeUpdate(...)
+        windowtree::ShouldMonocleTreeUpdate(...)
 
     Notes:
         Just a wrapper around SetWindowRefFocus which gets the WindowRef.
@@ -272,7 +272,7 @@ void SetWindowFocus(window_info *Window); // gets WindowRef from Window, calls S
 /* Set the WindowRef position centered in OS X constrained by the parameters, and update parameters
 
     Map:
-        WindowRef + dimensions -> Centered Window in OS X
+        WindowRef ~> WindowRef
         
     Parameters:
     [M] WindowRef - output position/size set for the window reference
@@ -285,26 +285,28 @@ void SetWindowFocus(window_info *Window); // gets WindowRef from Window, calls S
         (void)
 
     Called Functions:
-        GetWindowPos(WindowRef)
+        windowref::GetWindowPos(WindowRef)
+        windowref::GetWindowSize(WindowRef)
         CGPointMake(...)
-        AXValueCreate(kAXValueCGPointType, ...)
-        AXUIElementSetAttributeValue(WindowRef, kAXPositionAttribute, ...)
-        GetWindowSize(WindowRef)
         CGSizeMake(...)
+        AXValueCreate(kAXValueCGPointType, ...)
         AXValueCreate(kAXValueCGSizeType, ...)
         AXUIElementSetAttributeValue(WindowRef, kAXSizeAttribute, ...)
+        AXUIElementSetAttributeValue(WindowRef, kAXPositionAttribute, ...)
 
     Calling Functions:
-        SetWindowDimensions(WindowRef, *Xptr, *Yptr, *Wptr, *Hptr)
+        windowreff::SetWindowDimensions(WindowRef, *Xptr, *Yptr, *Wptr, *Hptr)
 
     Notes:
-        TODO - Decode the calculation logic
+      - Doesn't have anything to do with node containers, should rename for clarity.
+    TODO: Decode the calculation logic
 */
 void CenterWindowInsideNodeContainer(AXUIElementRef WindowRef, int *Xptr, int *Yptr, int *Wptr, int *Hptr); // changes WindowSize of windowref
 
 /* Set the Window dimensions of the given WindowRef and Window based on parameters
+
     Map:
-        window position -> new window position
+        WindowRef ~> WindowRef
 
     Parameters:
     [M] WindowRef - WindowRef to reposition
@@ -353,11 +355,11 @@ void SetWindowDimensions(AXUIElementRef WindowRef, window_info *Window, int X, i
 /* Resize the Window of the given Window based on the Container; if Focused, update KWMFocus.Cache
 
     Map:
-        Container dimensions -> Window position        
+        Container ~> WindowRef
 
     Parameters:
-    [M] Window - the Window to change dimensions of
-        Container - a node container with dimensions
+        Window - the Window to change dimensions of
+        Container - Container with dimensions
 
     Global References:
         KWMFocus.Window
@@ -365,29 +367,30 @@ void SetWindowDimensions(AXUIElementRef WindowRef, window_info *Window, int X, i
 
     Mutations:
         (see SetWindowDimensions)
-        WindowRef of Window is updated
-        KWMFocus.Cache = *Window
+        KWMFocus.Cache = *Window if Window is Focused
 
     Return:
         (void)
 
     Called Functions:
-        GetWindowRef(Window, ..)
-        SetWindowDimensions(.., Window, Container->X, Container->Y, Container->Width. Container->Height)
-        WindowsAreEqual(Window, KWMFocus.Window)
+        windowref::GetWindowRef(Window, ..)
+        windowref::SetWindowDimensions(.., Window, Container->X, Container->Y, Container->Width. Container->Height)
+        windowref::WindowsAreEqual(Window, KWMFocus.Window)
 
     Calling Functions:
-        ResizeElementInContainer(.., Container)
+        container::ResizeElementInContainer(.., Container)
 
     Overloaded Functions:
-        windowtree::ResizeElementInContainer()
+        windowtree::ResizeWindowToContainerSize()
+
+    TODO: Do we want the overloaded function windowtree::ResizeWindowToContainerSize() ?
 */
 void ResizeWindowToContainerSize(window_info *Window, node_container *Container);
 
 /* Set the Window to the center of the display, based on dimensions in Screen.
 
     Map:
-        Screen dimensions & Window Position -> New Window Position
+        Screen ~> WindowRef // TODO give this a dimensions struct
 
     Parameters:
         Screen - the Screen whose position info is used.
@@ -400,11 +403,11 @@ void ResizeWindowToContainerSize(window_info *Window, node_container *Container)
         (void)
 
     Called Functions:
-        GetWindowRef(Window, ..)
-        SetWindowDimensions(.., Window, ...)
+        windowref::GetWindowRef(Window, ..)
+        windowref::SetWindowDimensions(.., Window, ...)
 
     Calling Functions:
-        AddWindowToTreeOfUnfocusedMonitor(Screen, Window)
+        windowtree::AddWindowToTreeOfUnfocusedMonitor(Screen, Window)
 
     Notes:
       - Only uses Screen for X, Y, Width, Height
@@ -414,8 +417,9 @@ void ResizeWindowToContainerSize(window_info *Window, node_container *Container)
 void CenterWindow(screen_info *Screen, window_info *Window);
 
 /* Set the currently focused Window's WindowRef to a new position by X and Y pixels.
+
     Map:
-        X,Y movements && KWMFocus.Window -> Reposition KWMFocus.Window
+        WindowRef ~> WindowRef
 
     Parameters:
         X - amount to move the window in the X direction
@@ -432,30 +436,31 @@ void CenterWindow(screen_info *Screen, window_info *Window);
         (void)
 
     Called Functions:
-        window::IsWindowFloating(KWMFocus.Window->WID, ..)
         application::IsApplicationFloating(KWMFocus.Window)
-        GetWindowRef(KWMFocus.Window, ..)
-        GetWindowPos(...)
+        window::IsWindowFloating(KWMFocus.Window->WID, ..)
+        windowref::GetWindowRef(KWMFocus.Window, ..)
+        windowref::GetWindowPos(...)
         AXValueCreate(kAXValueCGPointType, ..)
         AXUIElementSetAttributeValue(.., kAXPositionAttribute, ..)
 
     Calling Functions:
         interpreter::KwmWindowCommand(...)
-        MoveCursorToCenterOfFocusedWindow()
             
     Notes:
+      - Only called by interpreter
       - Could build an abstraction barrier between Windows and WindowRefs
         -> in this function we use the Window to get the WindowRef, then
            operate on just the WindowRef
 */
 void MoveFloatingWindow(int X, int Y);
 
-/* Set the OS X Mouse Cursor to center of Window's WindowRef
+/* Set the OS X Mouse Cursor to center of Window
+
     Map:
-        Window's WindowRef -> OS X Cursor Position
+        WindowRef ~> OS X
 
     Parameters:
-        Window - the Window to which the cursor is moved
+        WindowRef - the Window to which the cursor is moved
 
     Mutations:
         OS X Mouse Cursor position
@@ -464,16 +469,13 @@ void MoveFloatingWindow(int X, int Y);
         (void)
 
     Called Functions:
-        GetWindowRef(Window, ..)
-        GetWindowPos(...)
-        GetWindowSize(...)
+        windowref::GetWindowPos(...)
+        windowref::GetWindowSize(...)
         CGPointMake(...)
         CGWarpMouseCursorPosition(...)
 
     Calling Functions:
-
-    Notes:
-        Just immediately gets a WindowRef to operate on
+        windowref::MoveCursorToCenterOfFocusedWindow()
 */
 void MoveCursorToCenterOfWindow(window_info *Window); // immediately gets the WindowRef
 
@@ -484,6 +486,10 @@ void MoveCursorToCenterOfWindow(window_info *Window); // immediately gets the Wi
     Parameters:
         (none)
 
+    Global References:
+        KWMFocus.Window
+        KWMToggles.UseMouseFollowsFocus
+
     Mutations:
         (see MoveCursorToCenterOfWindow)
 
@@ -491,12 +497,14 @@ void MoveCursorToCenterOfWindow(window_info *Window); // immediately gets the Wi
         (void)
 
     Called Functions:
-        MoveCursorToCenterOfWindow(KWMFocus.Window)
+        windowref::GetWindowRef(KWMFocus.Window, ..)
+        windowref::MoveCursorToCenterOfWindow(KWMFocus.Window)
 
     Calling Functions:
+        workspace::didActivateApplication(...)
+        notifications::FocusedAXObserverCallback(...)
         application::CaptureApplication(...)
         display::GiveFocusToScreen(...)
-        notifications::FocusedAXObserverCallback(...)
         space::UpdateActiveSpace()
         windowtree::FocusFirstLeafNode()
         windowtree::FocusLastLeafNode()
@@ -511,7 +519,6 @@ void MoveCursorToCenterOfWindow(window_info *Window); // immediately gets the Wi
         windowtree::SwapFocusedWindowWithMarked()
         windowtree::SwapFocusedWindowDirected()
         windowtree::SwapFocusedWindowWithNearest()
-        workspace::didActivateApplication(...)
 
     Notes:
       - It looks like this gets called whenever stuff is updated on the window.
@@ -523,7 +530,7 @@ void MoveCursorToCenterOfFocusedWindow();
 /* Remove the WindowRef's PID from KWMCache
 
     Map:
-        PID -> clear KWMCache.WindowRefs[PID]
+        WindowRef ~> WindowRef
 
     Parameters:
         PID - the PID of the process to remove from the cache
@@ -533,6 +540,7 @@ void MoveCursorToCenterOfFocusedWindow();
 
     Mutations:
         KWMCache.WindowRefs[PID] is cleared
+        (see GetWindowRef)
 
     Return:
         (void)
@@ -541,16 +549,14 @@ void MoveCursorToCenterOfFocusedWindow();
         (none)
 
     Calling Functions:
-        GetWindowRef(...)
+        windowtree::GetWindowRef(...)
 */
 void FreeWindowRefCache(int PID);
-
-/* QUERY */
 
 /* If we can resize the WindowRef, resize it and find+remove the Window in its Tree
 
     Map:
-        WindowRef -> Try to reposition WindowRef && remove Window from Tree
+        WindowRef ~> WindowRef, Tree
 
     Parameters:
     [M] WindowRef - WindowRef to set the position/size of.
@@ -563,28 +569,29 @@ void FreeWindowRefCache(int PID);
 
     Mutations:
         KWMTiling.FloatingWindowLst append Window->WID
-        Tree on (Screen of (Display of Window))) -> REMOVE Window->WID
+        Tree on (Screen of (Display of Window))) -> REMOVE(Window)
 
     Return:
         bool - true  : WindowRef was successfully mutated 
                false : WindowRef was not successfully mutated
 
     Called Functions:
+        display::GetDisplayOfWindow(Window)
+        space::DoesSpaceExistInMapOfScreen(...)
+        space::GetActiveSpaceOfScreen(...)
+        windowtree::RemoveWindowFromBSPTree(..., Window->WID, false)
+        windowtree::RemoveWindowFromMonocleTree(..., Window->WID)
         AXUIElementSetAttributeValue(WindowREf, kAXPositionAttribute, NewWindowPos)
         AXUIElementSetAttributeValue(WindowRef, kAXSizeAttribute, NewWindowSize)
-        GetDisplayOfWindow(Window)
-        DoesSpaceExistInMapOfScreen(...)
-        GetActiveSpaceOfScreen(...)
-        RemoveWindowFromBSPTree(..., Window->WID, false)
-        RemoveWindowFromMonocleTree(..., Window->WID)
 
     Calling Functions:
-        SetWindowDimensions(WindowRef, Window, ...)
+        windowref::SetWindowDimensions(WindowRef, Window, ...)
 
     Notes:
-        Should NOT be mutating in a query function
         The tree removal stuff seems like a separate routine to be called
         whenever a window is resized -- it pops it out of the tree.
+
+    TODO: Should NOT be mutating in a query function
 */
 bool IsWindowNonResizable(AXUIElementRef WindowRef, window_info *Window, CFTypeRef NewWindowPos, CFTypeRef NewWindowSize);
 
