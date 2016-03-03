@@ -115,12 +115,12 @@ void SetRootNodeContainer(const screen_info &Screen, const container_offset &Off
 {
     Assert(Container, "SetRootNodeContainer()")
 
-    Container->Type = ContainerRoot;
-    Container->X = Screen.X + Offset.PaddingLeft;
-    Container->Y = Screen.Y + Offset.PaddingTop;
-    Container->Width = Screen.Width - Offset.PaddingLeft - Offset.PaddingRight;
-    Container->Height = Screen.Height - Offset.PaddingTop - Offset.PaddingBottom;
-    Container->SplitMode = GetOptimalSplitMode(*Container);
+    Container->Type       = ContainerRoot;
+    Container->X          = Screen.X + Offset.PaddingLeft;
+    Container->Y          = Screen.Y + Offset.PaddingTop;
+    Container->Width      = Screen.Width - Offset.PaddingLeft - Offset.PaddingRight;
+    Container->Height     = Screen.Height - Offset.PaddingTop - Offset.PaddingBottom;
+    Container->SplitMode  = GetOptimalSplitMode(*Container);
     Container->SplitRatio = KWMScreen.SplitRatio;
 }
 
@@ -131,11 +131,6 @@ void ChangeSplitRatio(double Value)
         DEBUG("ChangeSplitRatio() New Split-Ratio is " << Value)
         KWMScreen.SplitRatio = Value;
     }
-}
-
-void ResizeContainer(const container_offset &Offset, node_container *Container)
-{
-    *Container = CreateNodeContainer(Offset, *Container, Container->Type);
 }
 
 bool ModifyContainerSplitRatio(node_container *Container, const double &Offset)
