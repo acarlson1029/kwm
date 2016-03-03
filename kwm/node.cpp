@@ -132,7 +132,7 @@ void ResizeNodeContainer(screen_info *Screen, const container_offset &Offset, tr
     if (Node && !Node->Parent)
         SetRootNodeContainer(*Screen, Offset, &Node->Container);
     else
-        ResizeContainer(Offset, &Node->Container);
+        Node->Container = CreateNodeContainer(Offset, Node->Parent, Node->Type);
 }
 
 bool ModifyNodeSplitRatio(tree_node *Node, const double &Offset)
