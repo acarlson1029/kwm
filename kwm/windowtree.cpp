@@ -532,7 +532,7 @@ void RemoveWindowFromMonocleTree(screen_info *Screen, int WindowID)
 }
 
 void ToggleWindowFloating(int WindowID)
-
+{
     if(IsWindowOnActiveSpace(WindowID) &&
        KWMScreen.Current->Space[KWMScreen.Current->ActiveSpace].Mode == SpaceModeBSP)
     {
