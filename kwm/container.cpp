@@ -133,7 +133,7 @@ void ChangeSplitRatio(double Value)
     }
 }
 
-bool ModifyContainerSplitRatio(node_container *Container, const double &Offset)
+bool ModifyContainerSplitRatio(node_container *Container, const double &Offset) // TODO Change this param name
 {
     // TODO Define these as MAX OFFSET and MIN OFFSET somewhere in types.h
     if(Container->SplitRatio + Offset <= 0.0 ||
