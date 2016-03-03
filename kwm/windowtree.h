@@ -4,8 +4,6 @@
 #define WINDOWTREE_H
 
 #include "types.h"
-/* Focus */
-
 
 /* Call SetWindowFocus on the Node's Window
 
@@ -896,7 +894,6 @@ void SwapFocusedWindowWithNearest(int Shift);
 	  - Should maybe update the title to say "Focused" something or other
 */
 void ModifySubtreeSplitRatioFromWindow(const double &Offset);
-
 
 /* Resize the Element in the Tree.
 
