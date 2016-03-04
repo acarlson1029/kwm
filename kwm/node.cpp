@@ -24,6 +24,7 @@ tree_node *CreateLeafNode(const container_offset &Offset, tree_node *Parent, int
     Assert(Parent, "CreateLeafNode()")
 
     tree_node Clear = {0};
+    // TODO why malloc in C++?
     tree_node *Leaf = (tree_node*) malloc(sizeof(tree_node));
     *Leaf = Clear;
 
@@ -43,6 +44,7 @@ void CreateLeafNodePair(const container_offset &Offset, tree_node *Parent, int F
     Assert(Parent, "CreateLeafNodePair()")
 
     Parent->WindowID = -1;
+    // TODO Can call container functions for this?
     Parent->Container.SplitMode = SplitMode == SplitModeOptimal ? GetOptimalSplitMode(Parent->Container) : SplitMode;
     Parent->Container.SplitRatio = KWMScreen.SplitRatio;
 
@@ -123,7 +125,7 @@ void SwapNodeWindowIDs(tree_node *A, tree_node *B)
 
 // Note - in Monocle Mode, every Node is a "Root" (i.e. no parent),so
 // every node is resized to the RootNodeContainer.
-// TODO -- Does this need an "OptimalSplitMode" boolean argument?
+// TODO  Does this need an "OptimalSplitMode" boolean argument?
 void ResizeNodeContainer(screen_info *Screen, const container_offset &Offset, tree_node *Node)
 {
     Assert(Node, "ResizeNodeContainer()")
@@ -132,7 +134,7 @@ void ResizeNodeContainer(screen_info *Screen, const container_offset &Offset, tr
     if (Node && !Node->Parent)
         SetRootNodeContainer(*Screen, Offset, &Node->Container);
     else
-        Node->Container = CreateNodeContainer(Offset, Node->Parent, Node->Type);
+        Node->Container = CreateNodeContainer(Offset, Node->Parent->Container, Node->Parent->Container.Type);
 }
 
 bool ModifyNodeSplitRatio(tree_node *Node, const double &Offset)
