@@ -37,6 +37,7 @@ bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, const container_off
         Root->WindowID = Windows[0]->WID;
         for(std::size_t WindowIndex = 1; WindowIndex < Windows.size(); ++WindowIndex)
         {
+            // TODO - Replace with a "Find*Leaf" function call.
             while(!IsLeafNode(Root))
             {
                 if(!IsLeafNode(Root->LeftChild) && IsLeafNode(Root->RightChild))
@@ -181,10 +182,11 @@ tree_node *GetFirstLeafNode(tree_node *Node)
 {
     if(Node)
     {
-        while(!IsLeafNode(Node))
-            Node = Node->LeftChild;
+        tree_node *First = Node;
+        while(!IsLeafNode(First))
+            First = First ->LeftChild;
 
-        return Node;
+        return First;
     }
 
     return NULL;
@@ -194,10 +196,11 @@ tree_node *GetLastLeafNode(tree_node *Node)
 {
     if(Node)
     {
-        while(!IsLeafNode(Node))
-            Node = Node->RightChild;
+        tree_node *Last = Node;
+        while(!IsLeafNode(Last))
+            Last = Last->RightChild;
 
-        return Node;
+        return Last;
     }
 
     return NULL;
