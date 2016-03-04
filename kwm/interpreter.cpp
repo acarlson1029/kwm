@@ -16,6 +16,7 @@
 #include "application.h"
 #include "windowtree.h"
 #include "windowref.h"
+#include "dispatcher.h"
 
 extern kwm_screen KWMScreen;
 extern kwm_toggles KWMToggles;

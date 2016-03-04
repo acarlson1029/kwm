@@ -261,8 +261,8 @@ void ChangeSplitRatio(double Value);
         (void)
 
     Called Functions:
-        window    :: GetWindowByID(WindowID)
-        windowref :: ResizeWindowToContainerSize(.., Container)
+        window     :: GetWindowByID(WindowID)
+        dispatcher :: ResizeWindowToContainerSize(.., Container)
 
     Calling Functions:
         node :: ResizeElementInNode(..)
