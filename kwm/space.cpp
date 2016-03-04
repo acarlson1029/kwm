@@ -94,6 +94,7 @@ bool IsSpaceFloating(int SpaceID)
     return Result;
 }
 
+// TODO Get function shouldn't mutate parameter.
 space_info *GetActiveSpaceOfScreen(screen_info *Screen)
 {
     space_info *Space = NULL;
