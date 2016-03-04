@@ -33,7 +33,7 @@
         container :: CreateNodeContainer(Offset, Parent->Container, ContainerType)
 
     Calling Functions:
-        container :: CreateLeafNodePair(Offset, Parent, ...)
+        node :: CreateLeafNodePair(Offset, Parent, ...)
         serialize :: DeserializeChildNode(...)
     
     Notes:
@@ -421,6 +421,8 @@ bool IsRootNode(tree_node *Node);
         windowref :: SwapFocusedWindowWithNearest()
     
     Notes:
+
+    TODO: Add abstraction level between the windowref functions
 */
 void SwapNodeWindowIDs(tree_node *A, tree_node *B);
 
