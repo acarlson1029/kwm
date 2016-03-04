@@ -178,7 +178,7 @@ void ClearElementInNode(screen_info *Screen, const container_offset &Offset, tre
 /* Resize the Node's Container with new constraints
 
     Map:
-        Node ~> Node
+        Node ~> Container
 
     Parameters:
         Screen - the Display of the Space of the Tree of the Node
