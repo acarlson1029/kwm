@@ -178,3 +178,28 @@ void ResizeElementInNode(tree_node *Node)
         ResizeElementInContainer(Node->WindowID, &Node->Container);
     }
 }
+
+void CreateNodeContainerPair(const container_offset &Offset, tree_node *Parent, const split_mode &SplitMode)
+{
+    Assert(Parent, "CreateNodeContainerPair() Parent")
+
+    switch(SplitMode)
+    {
+        case SplitModeVertical:
+        {
+            Parent->LeftChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerLeft);
+            Parent->RightChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerRight);
+        } break;
+        case SplitModeHorizontal:
+        {
+            Parent->LeftChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerUpper);
+            Parent->RightChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerLower);
+        } break;
+        default:
+        {
+            DEBUG("CreateNodeContainerPair() Invalid SplitMode given: " << SplitMode)
+        } break;
+
+    }
+}
+

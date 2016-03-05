@@ -89,42 +89,13 @@ node_container LowerHorizontalContainerSplit(const container_offset &Offset, con
     Calling Functions:
         node      :: CreateLeafNode(Offset, ...)
         node      :: ResizeNodeContainer(.., Offset, ..)
-        container :: CreateNodeContainerPair(Offset, ...) // TODO Remove if function unused.
+        node      :: CreateNodeContainerPair(Offset, ...) // TODO Remove if function unused.
 
     Notes:
       - Could replace the KWMScreen.SplitRatio with some kind of KWM preferences reference? Or is that how it's operating now?
       - Rename to make obvious that the new Container is SPLIT from the Parent
 */
 node_container CreateNodeContainer(const container_offset &Offset, const node_container &ParentContainer, const container_type &ContainerType);
-
-/* Create Split Containers for each Child of Parent, based on Parent's Container
-
-    Map:
-        Node ~> Container
-
-    Parameters:
-        Offset - the offset for the new Container
-    [M] *Parent - the Parent Node for which the Containers are being created.
-        SplitMode - SplitModeVertical: Create Left/Right Containers
-                    SplitModeHorizontal: Create Upper/Lower Containers
-
-    Mutations:
-        *Parent->LeftChild->Container  <- new node_container
-        *Parent->RightChild->Container <- new node container
-
-    Return:
-        (void)
-
-    Called Functions:
-        container :: CreateNodeContainer(Offset, Parent->Container, ..)
-
-    Calling Functions:
-        FIXME: REMOVE IF UNUSED
-    
-    Notes:
-      - Not being called anywhere??
-*/
-void CreateNodeContainerPair(const container_offset &Offset, tree_node *Parent, const split_mode &SplitMode);
 
 /* Set Container to default values for fullscreen Root Node
 

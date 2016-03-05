@@ -416,9 +416,9 @@ bool IsRootNode(tree_node *Node);
         node :: ResizeElementInNode(..)
 
     Calling Functions:
-        windowref :: SwapFocusedWindowDirected()
-        windowref :: SwapFocusedWindowWithMarked()
-        windowref :: SwapFocusedWindowWithNearest()
+        dispatcher :: SwapFocusedWindowDirected()
+        dispatcher :: SwapFocusedWindowWithMarked()
+        dispatcher :: SwapFocusedWindowWithNearest()
     
     Notes:
 
@@ -510,4 +510,34 @@ void ToggleNodeSplitMode(tree_node *Node);
     Notes:
 */
 void ResizeElementInNode(tree_node *Node);
+
+/* Create Split Containers for each Child of Parent, based on Parent's Container
+
+    Map:
+        Node ~> Container
+
+    Parameters:
+        Offset - the offset for the new Container
+    [M] *Parent - the Parent Node for which the Containers are being created.
+        SplitMode - SplitModeVertical: Create Left/Right Containers
+                    SplitModeHorizontal: Create Upper/Lower Containers
+
+    Mutations:
+        *Parent->LeftChild->Container  <- new node_container
+        *Parent->RightChild->Container <- new node container
+
+    Return:
+        (void)
+
+    Called Functions:
+        container :: CreateNodeContainer(Offset, Parent->Container, ..)
+
+    Calling Functions:
+        FIXME: REMOVE IF UNUSED
+    
+    Notes:
+      - Not being called anywhere??
+*/
+void CreateNodeContainerPair(const container_offset &Offset, tree_node *Parent, const split_mode &SplitMode);
+
 #endif

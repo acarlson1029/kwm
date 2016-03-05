@@ -2,7 +2,7 @@
 #include "window.h"    // containers hold windows; windows are the next abstraction level down
 #include "windowref.h" // ResizeWindowToContainerSize
 
-extern kwm_screen KWMScreen;
+extern kwm_screen KWMScreen; // for KWMScreen.SplitRatio config setting
 
 node_container LeftVerticalContainerSplit(const container_offset &Offset, const node_container &Container)
 {
@@ -84,31 +84,6 @@ node_container CreateNodeContainer(const container_offset &Offset, const node_co
     Container.Type = ContainerType;
 
     return Container;
-}
-
-// TODO -- can move the node logic up into node.cpp
-void CreateNodeContainerPair(const container_offset &Offset, tree_node *Parent, const split_mode &SplitMode)
-{
-    Assert(Parent, "CreateNodeContainerPair() Parent")
-
-    switch(SplitMode)
-    {
-        case SplitModeVertical:
-        {
-            Parent->LeftChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerLeft);
-            Parent->RightChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerRight);
-        } break;
-        case SplitModeHorizontal:
-        {
-            Parent->LeftChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerUpper);
-            Parent->RightChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerLower);
-        } break;
-        default:
-        {
-            DEBUG("CreateNodeContainerPair() Invalid SplitMode given: " << SplitMode)
-        } break;
-
-    }
 }
 
 void SetRootNodeContainer(const screen_info &Screen, const container_offset &Offset, node_container* Container)
