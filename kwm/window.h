@@ -28,7 +28,6 @@ void MarkWindowContainer(window_info *Window);
 void MarkFocusedWindowContainer();
 CGPoint GetCursorPos();
 window_info *GetWindowByID(int WindowID);
-std::string GetUTF8String(CFStringRef Temp);
 void GetWindowInfo(const void *Key, const void *Value, void *Context);
 bool GetWindowRole(window_info *Window, CFTypeRef *Role, CFTypeRef *SubRole);
 bool IsApplicationInCache(int PID, std::vector<AXUIElementRef> *Elements);
