@@ -4,6 +4,7 @@
 #include "border.h" // ClearBorder, UpdateBorder
 #include "application.h" // IsAppSpecificWindowRole, CaptureApplication, IsApplicationFloating
 #include "windowref.h" // GetWindowFocusedByOSX, SetWindowFocus, GetWindowRef
+#include "helpers.h"
 
 #include <cmath>
 
