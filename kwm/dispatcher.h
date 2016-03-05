@@ -149,7 +149,7 @@ void FocusWindowByID(int WindowID);
         tree       :: GetNearestNodeToTheRight(...)
         tree       :: GetNearestNodeToTheLeft(...)
         tree       :: GetFirstLeafNode(..)
-        tree       :: GetFirstLeafNode(..)
+        tree       :: GetLastLeafNode(..)
     [M] windowtree :: SetWindowFocusByNode(..)
     [M] windowref  :: MoveCursorToCenterOfFocusedWindow()
 
