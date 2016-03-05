@@ -1,47 +1,112 @@
+// TODO -- Replace references to "Screen" with a "space dimensions" struct of some kind;
+//      OR Offset and the dimensions are used for the same purpose -- calculating container boundaries.
+//         Can the Space use the Display dimensions plus its own Offset to just pass this bound info?
+//         `-> this would be a single "dimensions" struct: X,Y,W,H
+//      BUT the Offset contains GAP info (vertical gap between containers, for example)
+//      Bounding box only used in CreateRootNodeContainer
+//      Gaps only used in creating other containers
+//      Maybe the two args will be (1) space bounds, (2) container gaps passed from Space layer
+
 /* Functions that operate on Trees and Nodes */
 #ifndef TREE_H
 #define TREE_H
 
 #include "types.h"
 
-/* Constructors, Destructors, Mutators */
+/* Create a BSP Tree starting at the RootNode from a list of Windows
 
-/* Create either a BSP Tree or MonocoleTree from the given list of Windows
     Map:
-        std::vector<window_info*> -> Tree
-    Input:
-        Screen - used to determine the mode (BSP or Monocle)
-        WindowsPtr - list of windows to put in the tree.
-    Output:
-        tree_node - Root of full tree.
-*/
-tree_node *CreateTreeFromWindowIDList(screen_info *Screen, const container_offset &Offset, const std::vector<window_info*> &Windows, const space_tiling_option &Mode);
+        Tree ~> Tree
 
-/* Create a BSP Tree starting at the root node from a list of windows. 
-    Map:
-        std::vector<window_info*> -> Tree
-    Input:
-        RootNode - the root of the BSP tree to be created.
-        Screen - pass through to create Containers.
-        WindowsPtr - list of windows to put in the tree.
-    Output:
-        tree_node* RootNode - mutate the RootNode to populate with children created in this function.
-        bool - Success status of the tree creation process.
+    Parameters:
+    [M] RootNode - Make this the Root of the created Tree.
+        Screen   - the Display the Tree is being added on.
+        Offset   - the Screen offset padding.
+        Windows  - the list of Windows to be added to the tree.
+        
+    Mutations:
+        RootNode will be updated with the full Tree (NodeChildren pointers set)
+
+    Return:
+        bool - true  : Tree created successfully
+               false : No Tree created
+
+    Called Functions:
+        node :: IsLeafNode(..)
+        node :: CreateLeafNodePair(Offset, ..., SplitModeOptimal)
+
+    Calling Functions:
+        CreateTreeFromWindowIDList(Screen, Offset, Windows)
+    
+    Notes:
+
+    TODO: This function doesn't need Screen (it's just used for the RootNode creation in the calling function)
+    TODO: This function should just call AddElementToTree for each Window
+    TODO: This function should genericize the input to "Elements" instead of "Windows"
 */
 bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, const container_offset &Offset, const std::vector<window_info*> &Windows);
 
-/* Create a Monocle Tree starting at the root node from a list of windows.
+/* Create a Monocle Tree starting at the RootNode from a list of Windows
+
     Map:
-        std::vector<window_info*> -> Tree
-    Intput:
-        RootNode - the root of the Monocle tree to be created.
-        Screen - pass through to create Containers.
-        WindowsPtr - list of windows to put in the tree.
-    Output:
-        tree_node* RootNode - mutate the RootNode to populate with children created in this function.
-        bool - Success status of the tree creation process.
+        Tree ~> Tree
+
+    Parameters:
+    [M] RootNode - Make this the Root of the created Tree.
+        Screen   - the Display the Tree is being added on.
+        Offset   - the Screen offset padding.
+        Windows  - the list of Windows to be added to the tree.
+        
+    Mutations:
+        RootNode will be updated with the full Tree (NodeChildren pointers set)
+
+    Return:
+        bool - true  : Tree created successfully
+               false : No Tree created (empty Element list)
+
+    Called Functions:
+        node :: CreateRootNode(Screen, Offset)
+
+    Calling Functions:
+        CreateTreeFromWindowIDList(Screen, Offset, Windows)
+    
+    Notes:
+
+    TODO: This function should just call AddElementToTree for each Window
+    TODO: This function should genericize the input to "Elements" instead of "Windows"
 */
 bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const container_offset &Offset, const std::vector<window_info*> &Windows);
+
+/* Create a BSP or Monocle Tree for a list of Windows
+
+    Map:
+        Tree ~> Tree
+
+    Parameters:
+        Screen  - the Display to create the tree on
+        Offset  - the Offset to use when creating the container.
+        Windows - the Elements to add to the tree.
+        Mode    - the Space Tiling Mode
+                  note: SpaceModeBSP and SpaceModeMonocle get Trees, others get NULL
+        
+    Mutations:
+        (none)
+
+    Return:
+        tree_node - the RootNode of the created Tree
+                    NULL if tree not created
+
+    Called Functions:
+        tree :: CreateBSPTree(.., Screen, Offset, Windows)
+        tree :: CreateMonocleTree(.., Screen, Offset, Windows)
+        
+    Calling Functions:
+        windowtree :: CreateWindowNodeTree(Screen, Windows)
+    
+    Notes:
+    
+*/
+tree_node *CreateTreeFromWindowIDList(screen_info *Screen, const container_offset &Offset, const std::vector<window_info*> &Windows, const space_tiling_option &Mode);
 
 /* Recursively destroy the subtree and deallocate memory starting at Node
     Input:
