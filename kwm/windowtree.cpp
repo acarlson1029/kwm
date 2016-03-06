@@ -84,6 +84,12 @@ void CreateWindowNodeTree(screen_info *Screen, std::vector<window_info*> *Window
 
         Space->Initialized = true;
         Space->Offset = Screen->Offset;
+        Space->Boundary = {
+            Screen->Boundary.X + KWMScreen.DefaultPadding.PaddingLeft,
+            Screen->Boundary.Y + KWMScreen.DefaultPadding.PaddingTop,
+            Screen->Boundary.Width - (KWMScreen.DefaultPadding.PaddingLeft + KWMScreen.DefaultPadding.PaddingRight),
+            Screen->Boundary.Height - (KWMScreen.DefaultPadding.PaddingTop + KWMScreen.DefaultPadding.PaddingBottom)
+        };
         if(!IsSpaceFloating(Screen->ActiveSpace))
             Space->RootNode = CreateTreeFromWindowIDList(Space->Boundary, Space->Offset, *Windows, Space->Mode);
         else
@@ -278,7 +284,7 @@ void AddWindowToBSPTree(screen_info *Screen, int WindowID)
     }
     else
     {
-        CurrentNode = GetNodeFromWindowID(RootNode, KWMScreen.MarkedWindow, Space->Mode); // TODO: change Space->Mode to SpaceModeBSP
+        CurrentNode = GetNodeFromWindowID(RootNode, KWMScreen.MarkedWindow, SpaceModeBSP);
         ClearMarkedWindow();
     }
     AddElementToTree(Space->Boundary, Space->Offset, CurrentNode, WindowID, KWMScreen.SplitMode, SpaceModeBSP);

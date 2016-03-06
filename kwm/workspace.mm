@@ -37,7 +37,7 @@ extern kwm_thread KWMThread;
 - (void)dealloc
 {
     [[[NSWorkspace sharedWorkspace] notificationCenter] removeObserver:self];
-    [super dealloc];
+    // [super dealloc]; // FIXME ARC forbids explicit message send of 'dealloc'
 }
 
 - (void)activeSpaceDidChange:(NSNotification *)notification
@@ -71,7 +71,7 @@ extern kwm_thread KWMThread;
 void CreateWorkspaceWatcher(void *Watcher)
 {
     MDWorkspaceWatcher *MDWatcher = [[MDWorkspaceWatcher alloc] init];
-    Watcher = (void*)MDWatcher;
+    Watcher = (__bridge void*)MDWatcher; // Need bridged cast to go from Objective-C pointer to C-style pointer
 }
 
 CFStringRef GetDisplayIdentifier(screen_info *Screen)
@@ -79,7 +79,7 @@ CFStringRef GetDisplayIdentifier(screen_info *Screen)
     if(Screen->Identifier)
         return Screen->Identifier;
 
-    CGRect Frame = CGRectMake(Screen->X, Screen->Y, Screen->Width, Screen->Height);
+    CGRect Frame = CGRectMake(Screen->Boundary.X, Screen->Boundary.Y, Screen->Boundary.Width, Screen->Boundary.Height);
     Screen->Identifier = CGSCopyBestManagedDisplayForRect(CGSDefaultConnection, Frame);
     return Screen->Identifier;
 }
