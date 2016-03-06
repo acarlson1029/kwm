@@ -42,7 +42,7 @@ CGSize GetWindowSize(AXUIElementRef WindowRef)
     AXUIElementCopyAttributeValue(WindowRef, kAXSizeAttribute, (CFTypeRef*)&Temp);
     if(Temp)
     {
-        AXValueGetValue(Temp, kAXValueCGSizeType, &WindowSize);
+        AXValueGetValue(Temp, kAXValueTypeCGSize, &WindowSize);
         CFRelease(Temp);
     }
 
@@ -57,7 +57,7 @@ CGPoint GetWindowPos(AXUIElementRef WindowRef)
     AXUIElementCopyAttributeValue(WindowRef, kAXPositionAttribute, (CFTypeRef*)&Temp);
     if(Temp)
     {
-        AXValueGetValue(Temp, kAXValueCGPointType, &WindowPos);
+        AXValueGetValue(Temp, kAXValueTypeCGPoint, &WindowPos);
         CFRelease(Temp);
     }
 
@@ -233,10 +233,10 @@ void CenterWindowInsideNodeContainer(AXUIElementRef WindowRef, int *Xptr, int *Y
         Height -= YOff > 0 ? YOff : 0;
 
         CGPoint WindowPos = CGPointMake(X, Y);
-        CFTypeRef NewWindowPos = (CFTypeRef)AXValueCreate(kAXValueCGPointType, (const void*)&WindowPos);
+        CFTypeRef NewWindowPos = (CFTypeRef)AXValueCreate(kAXValueTypeCGPoint, (const void*)&WindowPos);
 
         CGSize WindowSize = CGSizeMake(Width, Height);
-        CFTypeRef NewWindowSize = (CFTypeRef)AXValueCreate(kAXValueCGSizeType, (void*)&WindowSize);
+        CFTypeRef NewWindowSize = (CFTypeRef)AXValueCreate(kAXValueTypeCGSize, (void*)&WindowSize);
 
         if(NewWindowPos)
         {
@@ -255,10 +255,10 @@ void CenterWindowInsideNodeContainer(AXUIElementRef WindowRef, int *Xptr, int *Y
 void SetWindowDimensions(AXUIElementRef WindowRef, window_info *Window, int X, int Y, int Width, int Height)
 {
     CGPoint WindowPos = CGPointMake(X, Y);
-    CFTypeRef NewWindowPos = (CFTypeRef)AXValueCreate(kAXValueCGPointType, (const void*)&WindowPos);
+    CFTypeRef NewWindowPos = (CFTypeRef)AXValueCreate(kAXValueTypeCGPoint, (const void*)&WindowPos);
 
     CGSize WindowSize = CGSizeMake(Width, Height);
-    CFTypeRef NewWindowSize = (CFTypeRef)AXValueCreate(kAXValueCGSizeType, (void*)&WindowSize);
+    CFTypeRef NewWindowSize = (CFTypeRef)AXValueCreate(kAXValueTypeCGSize, (void*)&WindowSize);
 
     if(!NewWindowPos || !NewWindowSize)
         return;
@@ -340,7 +340,7 @@ void MoveFloatingWindow(int X, int Y)
         WindowPos.x += X;
         WindowPos.y += Y;
 
-        CFTypeRef NewWindowPos = (CFTypeRef)AXValueCreate(kAXValueCGPointType, (const void*)&WindowPos);
+        CFTypeRef NewWindowPos = (CFTypeRef)AXValueCreate(kAXValueTypeCGPoint, (const void*)&WindowPos);
         if(NewWindowPos)
         {
             AXUIElementSetAttributeValue(WindowRef, kAXPositionAttribute, NewWindowPos);
