@@ -443,9 +443,9 @@ void GetWindowInfo(const void *Key, const void *Value, void *Context)
     }
 }
 
-void GetWindowRole(window_info *Window)
+bool GetWindowRole(window_info *Window)
 {
-    Result = false;
+    bool Result = false;
 	AXUIElementRef WindowRef;
 
 	if(GetWindowRef(Window, &WindowRef))
