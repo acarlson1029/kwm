@@ -3,7 +3,7 @@
 #include "space.h" // IsSpaceTransitionInProgress, IsActiveSpaceManaged
 #include "border.h" // ClearBorder, UpdateBorder
 #include "application.h" // IsAppSpecificWindowRole, CaptureApplication, IsApplicationFloating
-#include "windowref.h" // GetWindowFocusedByOSX, SetWindowFocus, GetWindowRef
+#include "windowref.h" // GetWindowFocusedByOSX, SetWindowFocus
 #include "helpers.h"
 
 #include <cmath>
@@ -34,16 +34,19 @@ bool WindowsAreEqual(window_info *Window, window_info *Match)
 std::vector<window_info> FilterWindowListAllDisplays()
 {
     std::vector<window_info> FilteredWindowLst;
-    for(std::size_t WindowIndex = 0; WindowIndex < KWMTiling.FocusLst.size(); ++WindowIndex)
+    std::vector<window_info>::iterator WinIt, end;
+    for(WinIt = KWMTiling.FocusLst.begin(), end = KWMTiling.FocusLst.end(); WinIt != end; ++WinIt)
     {
-        if(KWMTiling.FocusLst[WindowIndex].Layer == 0)
+        window_info *Window = &(*WinIt);
+
+        if(Window->Layer == 0)
         {
-            CFTypeRef Role, SubRole;
-            if(GetWindowRole(&KWMTiling.FocusLst[WindowIndex], &Role, &SubRole))
+            if((Window->Role && Window->SubRole) || GetWindowRole(Window))
             {
-                if((CFEqual(Role, kAXWindowRole) && CFEqual(SubRole, kAXStandardWindowSubrole)) ||
-                   IsAppSpecificWindowRole(&KWMTiling.FocusLst[WindowIndex], Role, SubRole))
-                        FilteredWindowLst.push_back(KWMTiling.FocusLst[WindowIndex]);
+                bool RoleMatch = CFEqual(Window->Role, kAXWindowRole) && CFEqual(Window->SubRole, kAXStandardWindowSubrole);
+
+                if(RoleMatch || IsAppSpecificWindowRole(Window, Window->Role, Window->SubRole))
+                    FilteredWindowLst.push_back(*Window);
             }
         }
     }
@@ -54,28 +57,29 @@ std::vector<window_info> FilterWindowListAllDisplays()
 bool FilterWindowList(screen_info *Screen)
 {
     std::vector<window_info> FilteredWindowLst;
-    for(std::size_t WindowIndex = 0; WindowIndex < KWMTiling.WindowLst.size(); ++WindowIndex)
+    std::vector<window_info>::iterator WinIt, end;
+    for(WinIt = KWMTiling.WindowLst.begin(), end = KWMTiling.WindowLst.end(); WinIt != end; ++WinIt)
     {
+        window_info *Window = &(*WinIt);
+
         /* Note(koekeishiya):
          * Mission-Control mode is on and so we do not try to tile windows */
-        if(KWMTiling.WindowLst[WindowIndex].Owner == "Dock" &&
-           KWMTiling.WindowLst[WindowIndex].Name == "")
+        if(Window->Owner == "Dock" && Window->Name == "")
         {
-                ClearFocusedWindow();
-                ClearMarkedWindow();
-                return false;
+            ClearFocusedWindow();
+            ClearMarkedWindow();
+            return false;
         }
 
-        CaptureApplication(&KWMTiling.WindowLst[WindowIndex]);
-        if(KWMTiling.WindowLst[WindowIndex].Layer == 0 &&
-           Screen == GetDisplayOfWindow(&KWMTiling.WindowLst[WindowIndex]))
+        CaptureApplication(Window);
+        if((Window->Layer == 0) && (Screen == GetDisplayOfWindow(Window)))
         {
-            CFTypeRef Role, SubRole;
-            if(GetWindowRole(&KWMTiling.WindowLst[WindowIndex], &Role, &SubRole))
+            if((Window->Role && Window->SubRole) || GetWindowRole(Window))
             {
-                if((CFEqual(Role, kAXWindowRole) && CFEqual(SubRole, kAXStandardWindowSubrole)) ||
-                   IsAppSpecificWindowRole(&KWMTiling.WindowLst[WindowIndex], Role, SubRole))
-                        FilteredWindowLst.push_back(KWMTiling.WindowLst[WindowIndex]);
+                bool RoleMatch = CFEqual(Window->Role, kAXWindowRole) && CFEqual(Window->SubRole, kAXStandardWindowSubrole);
+
+                if(RoleMatch || IsAppSpecificWindowRole(Window, Window->Role, Window->SubRole))
+                    FilteredWindowLst.push_back(*Window);
             }
         }
     }
@@ -395,33 +399,6 @@ window_info *GetWindowByID(int WindowID)
     return NULL;
 }
 
-bool GetWindowRole(window_info *Window, CFTypeRef *Role, CFTypeRef *SubRole)
-{
-    bool Result = false;
-
-    std::map<int, window_role>::iterator It = KWMCache.WindowRole.find(Window->WID);
-    if(It != KWMCache.WindowRole.end())
-    {
-        *Role = KWMCache.WindowRole[Window->WID].Role;
-        *SubRole = KWMCache.WindowRole[Window->WID].SubRole;
-        Result = true;
-    }
-    else
-    {
-        AXUIElementRef WindowRef;
-        if(GetWindowRef(Window, &WindowRef))
-        {
-            AXUIElementCopyAttributeValue(WindowRef, kAXRoleAttribute, (CFTypeRef *)Role);
-            AXUIElementCopyAttributeValue(WindowRef, kAXSubroleAttribute, (CFTypeRef *)SubRole);
-            window_role RoleEntry = { *Role, *SubRole };
-            KWMCache.WindowRole[Window->WID] = RoleEntry;
-            Result = true;
-        }
-    }
-
-    return Result;
-}
-
 void GetWindowInfo(const void *Key, const void *Value, void *Context)
 {
     CFStringRef K = (CFStringRef)Key;
@@ -466,3 +443,17 @@ void GetWindowInfo(const void *Key, const void *Value, void *Context)
     }
 }
 
+void GetWindowRole(window_info *Window)
+{
+    Result = false;
+	AXUIElementRef WindowRef;
+
+	if(GetWindowRef(Window, &WindowRef))
+	{
+		AXUIElementCopyAttributeValue(WindowRef, kAXRoleAttribute, (CFTypeRef *)&Window->Role);
+		AXUIElementCopyAttributeValue(WindowRef, kAXSubroleAttribute, (CFTypeRef *)&Window->SubRole);
+		Result = true;
+	} 
+
+	return Result;
+}

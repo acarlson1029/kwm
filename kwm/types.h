@@ -200,6 +200,7 @@ struct window_info
     int PID, WID;
     int Layer;
     bound_rect Boundary;
+    CFTypeRef Role, SubRole;
 };
 
 struct window_role
