@@ -1,12 +1,17 @@
+// OKAY
 #include "display.h"
 #include "space.h"
-#include "tree.h"
-#include "window.h"
-#include "container.h"
-#include "application.h"
-#include "windowtree.h"
-#include "windowref.h"
-#include "dispatcher.h"
+
+// TO BE REMOVED
+#include "tree.h"        // DestroyNodeTree, ResizeTreeNodes, ApplyNodeContainer, GetFirstLeafNode -- should be moved into Space functions
+#include "window.h"      // GetCursorPos, IsWindowFloating, UpdateActiveWindowList, FilterWindowList, IsAnyWindowBelowCursor, ClearFocusedWindow, FocusWindowBelowCursor, ClearMarkedWindow
+#include "container.h"   // SetRootNodeContainer, as part of ChangePadding()
+#include "application.h" // IsApplicationFloating, as filter when getting windows on display
+
+// Part of the monster GiveFocusToScreen() function
+#include "windowtree.h"  // SetWindowFocusByNode, except: AddWindowToTreeOfUnfocusedMonitor <- should be refactored
+#include "windowref.h"   // MoveCursorToCenterOfFocusedWindow
+#include "dispatcher.h"  // ToggleFocusedWindowFloating
 
 extern kwm_screen KWMScreen;
 extern kwm_focus KWMFocus;
@@ -61,10 +66,10 @@ screen_info CreateDefaultScreenInfo(int DisplayIndex, int ScreenIndex)
     Screen.ActiveSpace = -1;
     Screen.OldWindowListCount = -1;
 
-    Screen.X = DisplayRect.origin.x;
-    Screen.Y = DisplayRect.origin.y;
-    Screen.Width = DisplayRect.size.width;
-    Screen.Height = DisplayRect.size.height;
+    Screen.Boundary.X = DisplayRect.origin.x;
+    Screen.Boundary.Y = DisplayRect.origin.y;
+    Screen.Boundary.Width = DisplayRect.size.width;
+    Screen.Boundary.Height = DisplayRect.size.height;
 
     Screen.Offset = KWMScreen.DefaultOffset;
     return Screen;
@@ -75,10 +80,10 @@ void UpdateExistingScreenInfo(screen_info *Screen, int DisplayIndex, int ScreenI
     CGRect DisplayRect = CGDisplayBounds(DisplayIndex);
     Screen->ID = ScreenIndex;
 
-    Screen->X = DisplayRect.origin.x;
-    Screen->Y = DisplayRect.origin.y;
-    Screen->Width = DisplayRect.size.width;
-    Screen->Height = DisplayRect.size.height;
+    Screen->Boundary.X = DisplayRect.origin.x;
+    Screen->Boundary.Y = DisplayRect.origin.y;
+    Screen->Boundary.Width = DisplayRect.size.width;
+    Screen->Boundary.Height = DisplayRect.size.height;
 
     Screen->Offset = KWMScreen.DefaultOffset;
     Screen->ForceContainerUpdate = true;
@@ -148,8 +153,8 @@ screen_info *GetDisplayOfMousePointer()
     {
         CGPoint Cursor = GetCursorPos();
         screen_info *Screen = &It->second;
-        if(Cursor.x >= Screen->X && Cursor.x <= Screen->X + Screen->Width &&
-           Cursor.y >= Screen->Y && Cursor.y <= Screen->Y + Screen->Height)
+        if(Cursor.x >= Screen->Boundary.X && Cursor.x <= Screen->Boundary.X + Screen->Boundary.Width &&
+           Cursor.y >= Screen->Boundary.Y && Cursor.y <= Screen->Boundary.Y + Screen->Boundary.Height)
                return Screen;
     }
 
@@ -164,8 +169,8 @@ screen_info *GetDisplayOfWindow(window_info *Window)
         for(It = KWMTiling.DisplayMap.begin(); It != KWMTiling.DisplayMap.end(); ++It)
         {
             screen_info *Screen = &It->second;
-            if(Window->X >= Screen->X && Window->X <= Screen->X + Screen->Width &&
-               Window->Y >= Screen->Y && Window->Y <= Screen->Y + Screen->Height)
+            if(Window->Boundary.X >= Screen->Boundary.X && Window->Boundary.X <= Screen->Boundary.X + Screen->Boundary.Width &&
+               Window->Boundary.Y >= Screen->Boundary.Y && Window->Boundary.Y <= Screen->Boundary.Y + Screen->Boundary.Height)
                 return Screen;
         }
 
@@ -202,7 +207,7 @@ std::vector<int> GetAllWindowIDsOnDisplay(int ScreenIndex)
         window_info *Window = &KWMTiling.WindowLst[WindowIndex];
         if(!IsApplicationFloating(&KWMTiling.WindowLst[WindowIndex]))
         {
-            if(Window->X >= Screen->X && Window->X <= Screen->X + Screen->Width)
+            if(Window->Boundary.X >= Screen->Boundary.X && Window->Boundary.X <= Screen->Boundary.X + Screen->Boundary.Width)
                 ScreenWindowIDLst.push_back(Window->WID);
         }
     }
@@ -213,13 +218,13 @@ std::vector<int> GetAllWindowIDsOnDisplay(int ScreenIndex)
 void SetDefaultPaddingOfDisplay(const std::string &Side, int Offset)
 {
     if(Side == "left")
-        KWMScreen.DefaultOffset.PaddingLeft = Offset;
+        KWMScreen.DefaultPadding.PaddingLeft = Offset;
     else if(Side == "right")
-        KWMScreen.DefaultOffset.PaddingRight = Offset;
+        KWMScreen.DefaultPadding.PaddingRight = Offset;
     else if(Side == "top")
-        KWMScreen.DefaultOffset.PaddingTop = Offset;
+        KWMScreen.DefaultPadding.PaddingTop = Offset;
     else if(Side == "bottom")
-        KWMScreen.DefaultOffset.PaddingBottom = Offset;
+        KWMScreen.DefaultPadding.PaddingBottom = Offset;
 }
 
 void SetDefaultGapOfDisplay(const std::string &Side, int Offset)
@@ -230,45 +235,51 @@ void SetDefaultGapOfDisplay(const std::string &Side, int Offset)
         KWMScreen.DefaultOffset.HorizontalGap = Offset;
 }
 
-void ChangePaddingOfDisplay(const std::string &Side, int Offset)
+// TODO Change name of function -- it's changing padding of a SPACE
+void ChangePaddingOfDisplay(const std::string &Side, int Delta)
 {
     screen_info *Screen = GetDisplayOfMousePointer();
     space_info *Space = GetActiveSpaceOfScreen(Screen);
 
+    // TODO Need some RECT comparison functions:
+    // i.e. make sure SPACE rect within SCREEN rect
     if(Side == "left")
     {
-        if(Space->Offset.PaddingLeft + Offset >= 0)
-            Space->Offset.PaddingLeft += Offset;
+        if(Space->Boundary.X + Delta >= Screen->Boundary.X)
+            Space->Boundary.X += Delta;
     }
     else if(Side == "right")
     {
-        if(Space->Offset.PaddingRight + Offset >= 0)
-            Space->Offset.PaddingRight += Offset;
+        double SpaceRightBorder = Space->Boundary.X + Space->Boundary.Width;
+        double ScreenRightBorder = Screen->Boundary.X + Screen->Boundary.Width;
+        if(SpaceRightBorder + Delta <= ScreenRightBorder)
+            Space->Boundary.Width += Delta;
     }
     else if(Side == "top")
     {
-        if(Space->Offset.PaddingTop + Offset >= 0)
-            Space->Offset.PaddingTop += Offset;
+        if(Space->Boundary.Y + Delta >= Screen->Boundary.Y)
+            Space->Boundary.Y += Delta;
     }
     else if(Side == "bottom")
     {
-        if(Space->Offset.PaddingBottom + Offset >= 0)
-            Space->Offset.PaddingBottom += Offset;
+        double SpaceBottomBorder = Space->Boundary.Y + Space->Boundary.Height;
+        double ScreenBottomBorder = Screen->Boundary.Y + Screen->Boundary.Height;
+        if(SpaceBottomBorder + Delta <= ScreenBottomBorder)
+            Space->Boundary.Height += Delta;
     }
 
     if(Space->RootNode)
     {
         if(Space->Mode == SpaceModeBSP)
         {
-            // TODO - call tree.cpp::ResizeTree which calls SetRootNode and resizes children.
-            ResizeTreeNodes(Screen, Space->Offset, Space->RootNode);
+            ResizeTreeNodes(Space->Boundary, Space->Offset, Space->RootNode);
         }
         else if(Space->Mode == SpaceModeMonocle)
         {
             tree_node *CurrentNode = Space->RootNode;
             while(CurrentNode)
             {
-                SetRootNodeContainer(*Screen, Space->Offset, &CurrentNode->Container);
+                SetRootNodeContainer(Space->Boundary, &CurrentNode->Container);
                 CurrentNode = CurrentNode->RightChild;
             }
         }
@@ -295,7 +306,7 @@ void ChangeGapOfDisplay(const std::string &Side, int Offset)
 
     if(Space->RootNode && Space->Mode == SpaceModeBSP)
     {
-        ResizeTreeNodes(Screen, Space->Offset, Space->RootNode);
+        ResizeTreeNodes(Space->Boundary, Space->Offset, Space->RootNode);
         ApplyNodeContainer(Space->RootNode, Space->Mode);
     }
 }
@@ -389,7 +400,7 @@ void GiveFocusToScreen(int ScreenIndex, tree_node *FocusNode, bool Mouse)
                 {
                     if(!Mouse && !Space->RootNode)
                     {
-                        CGWarpMouseCursorPosition(CGPointMake(Screen->X + (Screen->Width / 2), Screen->Y + (Screen->Height / 2)));
+                        CGWarpMouseCursorPosition(CGPointMake(Screen->Boundary.X + (Screen->Boundary.Width / 2), Screen->Boundary.Y + (Screen->Boundary.Height / 2)));
                         CGPoint ClickPos = GetCursorPos();
 
                         CGEventRef ClickEvent = CGEventCreateMouseEvent(NULL, kCGEventLeftMouseDown, ClickPos, kCGMouseButtonLeft);
@@ -444,8 +455,14 @@ void MoveWindowToDisplay(window_info *Window, int Shift, bool Relative)
 
 container_offset CreateDefaultScreenOffset()
 {
-    container_offset Offset = { 40, 20, 20, 20, 10, 10 };
+    container_offset Offset = { 10, 10 };
     return Offset;
+}
+
+padding_offset CreateDefaultPaddingOffset()
+{
+    padding_offset Padding = { 40, 20, 20, 20 };
+    return Padding;
 }
 
 void UpdateActiveScreen()

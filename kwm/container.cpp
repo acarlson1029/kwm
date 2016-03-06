@@ -8,7 +8,7 @@ node_container LeftVerticalContainerSplit(const container_offset &Offset, const 
 {
     node_container LeftContainer = Container;
 
-    LeftContainer.Width = (Container.Width * Container.SplitRatio) - (Offset.VerticalGap / 2);
+    LeftContainer.Boundary.Width = (Container.Boundary.Width * Container.SplitRatio) - (Offset.VerticalGap / 2);
 
     return LeftContainer;
 }
@@ -17,8 +17,8 @@ node_container RightVerticalContainerSplit(const container_offset &Offset, const
 {
     node_container RightContainer = Container;
 
-    RightContainer.X = Container.X + (Container.Width * Container.SplitRatio) + (Offset.VerticalGap / 2);
-    RightContainer.Width = (Container.Width * (1 - Container.SplitRatio)) - (Offset.VerticalGap / 2);
+    RightContainer.Boundary.X    += (Container.Boundary.Width * Container.SplitRatio) + (Offset.VerticalGap / 2);
+    RightContainer.Boundary.Width = (Container.Boundary.Width * (1 - Container.SplitRatio)) - (Offset.VerticalGap / 2);
 
     return RightContainer;
 }
@@ -27,7 +27,7 @@ node_container UpperHorizontalContainerSplit(const container_offset &Offset, con
 {
     node_container UpperContainer = Container;
 
-    UpperContainer.Height = (Container.Height * Container.SplitRatio) - (Offset.HorizontalGap / 2);
+    UpperContainer.Boundary.Height = (Container.Boundary.Height * Container.SplitRatio) - (Offset.HorizontalGap / 2);
 
     return UpperContainer;
 }
@@ -36,15 +36,15 @@ node_container LowerHorizontalContainerSplit(const container_offset &Offset, con
 {
     node_container LowerContainer = Container;
 
-    LowerContainer.Y = Container.Y + (Container.Height * Container.SplitRatio) + (Offset.HorizontalGap / 2);
-    LowerContainer.Height = (Container.Height * (1 - Container.SplitRatio)) - (Offset.HorizontalGap / 2);
+    LowerContainer.Boundary.Y     += (Container.Boundary.Height * Container.SplitRatio) + (Offset.HorizontalGap / 2);
+    LowerContainer.Boundary.Height = (Container.Boundary.Height * (1 - Container.SplitRatio)) - (Offset.HorizontalGap / 2);
 
     return LowerContainer;
 }
 
 split_mode GetOptimalSplitMode(const node_container &Container)
 {
-    return (Container.Width / Container.Height) >= 1.618 ? SplitModeVertical : SplitModeHorizontal;
+    return (Container.Boundary.Width / Container.Boundary.Height) >= 1.618 ? SplitModeVertical : SplitModeHorizontal;
 }
 
 node_container CreateNodeContainer(const container_offset &Offset, const node_container &ParentContainer, const container_type &ContainerType)
@@ -86,16 +86,13 @@ node_container CreateNodeContainer(const container_offset &Offset, const node_co
     return Container;
 }
 
-void SetRootNodeContainer(const screen_info &Screen, const container_offset &Offset, node_container* Container)
+void SetRootNodeContainer(const bound_rect &SpaceBoundary, node_container* Container)
 {
     Assert(Container, "SetRootNodeContainer()")
 
-    Container->Type       = ContainerRoot;
-    Container->X          = Screen.X + Offset.PaddingLeft;
-    Container->Y          = Screen.Y + Offset.PaddingTop;
-    Container->Width      = Screen.Width - Offset.PaddingLeft - Offset.PaddingRight;
-    Container->Height     = Screen.Height - Offset.PaddingTop - Offset.PaddingBottom;
-    Container->SplitMode  = GetOptimalSplitMode(*Container);
+    Container->Type = ContainerRoot;
+    Container->Boundary = SpaceBoundary;
+    Container->SplitMode = GetOptimalSplitMode(*Container);
     Container->SplitRatio = KWMScreen.SplitRatio;
 }
 
@@ -108,14 +105,13 @@ void ChangeSplitRatio(double Value)
     }
 }
 
-bool ModifyContainerSplitRatio(node_container *Container, const double &Offset) // TODO Change this param name
+bool ModifyContainerSplitRatio(node_container *Container, const double &Delta)
 {
-    // TODO Define these as MAX OFFSET and MIN OFFSET somewhere in types.h
-    if(Container->SplitRatio + Offset <= 0.0 ||
-       Container->SplitRatio + Offset >= 1.0)
+    if(Container->SplitRatio + Delta <= 0.0 ||
+       Container->SplitRatio + Delta >= 1.0)
         return false;
 
-    Container->SplitRatio += Offset;
+    Container->SplitRatio += Delta;
     return true;
 }
 

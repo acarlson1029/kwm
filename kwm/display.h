@@ -168,8 +168,6 @@ void RefreshActiveDisplays();
     
     Notes:
       - uses OS X display ID convention to determine next/prev
-
-    TODO:
 */
 int GetIndexOfNextScreen();
 
@@ -672,6 +670,7 @@ void UpdateActiveScreen();
     TODO: Don't need this, just make a struct in types.h
 */
 container_offset CreateDefaultScreenOffset();
+padding_offset CreateDefaultPaddingOffset(); // TODO remove and replace with a struct
 
 /* Create default Display object
 
@@ -758,10 +757,10 @@ void UpdateExistingScreenInfo(screen_info *Screen, int DisplayIndex, int ScreenI
 
     Mutations:
         One of the following is mutated (see Side)
-          KWMScreen.DefaultOffset.PaddingLeft
-          KWMScreen.DefaultOffset.PaddingRight
-          KWMScreen.DefaultOffset.PaddingTop
-          KWMScreen.DefaultOffset.PaddingBottom
+          KWMScreen.DefaultPadding.PaddingLeft
+          KWMScreen.DefaultPadding.PaddingRight
+          KWMScreen.DefaultPadding.PaddingTop
+          KWMScreen.DefaultPadding.PaddingBottom
 
     Return:
         (void)

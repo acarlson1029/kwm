@@ -40,7 +40,7 @@ split_mode GetOptimalSplitMode(const node_container &Container);
         Container ~> Container
 
     Parameters:
-       Offset    - Offset for the New Container
+       Offset    - the gap offset for the New Container
        Container - Base Container for the New Container
 
     Mutations:
@@ -66,7 +66,7 @@ node_container LowerHorizontalContainerSplit(const container_offset &Offset, con
         Container ~> Container
 
     Parameters:
-        Offset          - the offset of the new Container
+        Offset          - the gap offset of the new Container
         ParentContainer - the enclosing Container to base the split Container on.
         ContainerType   - the type of split for the new Container
 
@@ -103,8 +103,8 @@ node_container CreateNodeContainer(const container_offset &Offset, const node_co
         Container ~> Container
 
     Parameters:
-        Screen - the current Display, used for dimensions
-        Offset - the Offset to use for the Container
+        SpaceBoundary - the current Space's boundary rectangle
+        Offset - the gap Offset to use for the Container
     [M] *Container - Pointer to the Container to set to Root
 
     Global References:
@@ -121,16 +121,15 @@ node_container CreateNodeContainer(const container_offset &Offset, const node_co
 
     Calling Functions:
         display :: ChangePaddingOfDisplay(...)
-        node    :: ResizeNodeContainer(Screen, Offset, ..)
-        node    :: CreateRootNode(Screen, Offset)
+        node    :: ResizeNodeContainer(SpaceBoundary, Offset, ..)
+        node    :: CreateRootNode(SpaceBoundary, Offset)
     
     Notes:
-      - Replace the "Screen" parameter with a "dimensions" struct
       - Can probably rename to SetRootContainer, drop "Node" from name.
     
     TODO: Abstract display::ChangePaddingOfDisplay(...) from calling functions
 */
-void SetRootNodeContainer(const screen_info &Screen, const container_offset &Offset, node_container *Container);
+void SetRootNodeContainer(const bound_rect &SpaceBoundary, node_container *Container);
 
 /* Modify the SplitRatio of the Container by Offset
 

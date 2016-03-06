@@ -182,7 +182,7 @@ tree_node *DeserializeNodeTree(std::vector<std::string> &Serialized)
 
     DEBUG("Deserialize: Create Master")
     space_info *Space = GetActiveSpaceOfScreen(KWMScreen.Current);
-    tree_node *RootNode = CreateRootNode(KWMScreen.Current, Space->Offset);
+    tree_node *RootNode = CreateRootNode(Space->Boundary);
     DeserializeParentNode(RootNode, Serialized, 1);
     return RootNode;
 }

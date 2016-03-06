@@ -1,10 +1,12 @@
+// OKAY
 #include "space.h"
-#include "display.h"
-#include "window.h"
-#include "tree.h"
-#include "border.h"
-#include "windowtree.h"
-#include "windowref.h"
+#include "tree.h" // DestroyNodeTree,
+
+// FIXME
+#include "display.h" // GetAllWindowsOnDisplay
+#include "window.h" // ClearFocusedWindow, ClearMarkedWindow, FilterWindowList, UpdateActiveWindowList, IsAnyWindowBelowCursor, FocusWindowBelowCursor, FocusWindowOfOSX
+#include "windowtree.h" // CreateWindowTree, SetWindowFocusByNode
+#include "windowref.h" // MoveCursorToCenterOfFocusedWindow
 
 extern kwm_screen KWMScreen;
 extern kwm_focus KWMFocus;

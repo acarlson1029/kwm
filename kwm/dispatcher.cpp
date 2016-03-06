@@ -239,7 +239,7 @@ void ToggleFocusedWindowParent()
     if(Space->Mode != SpaceModeBSP)
         return;
 
-    if(ToggleElementInTree(KWMScreen.Current, Space->RootNode, KWMFocus.Window->WID, Space->Mode, Space->Offset))
+    if(ToggleElementInTree(Space->Boundary, Space->RootNode, KWMFocus.Window->WID, Space->Mode, Space->Offset))
         UpdateBorder("focused");
 }
 
@@ -249,7 +249,7 @@ void ToggleFocusedWindowFullscreen()
         return;
 
     space_info *Space = GetActiveSpaceOfScreen(KWMScreen.Current);
-    if(ToggleElementInRoot(KWMScreen.Current, Space->RootNode, KWMFocus.Window->WID, Space->Mode, Space->Offset))
+    if(ToggleElementInRoot(Space->Boundary, Space->RootNode, KWMFocus.Window->WID, Space->Mode, Space->Offset))
             UpdateBorder("focused");
 }
 
@@ -351,7 +351,7 @@ void ModifySubtreeSplitRatioFromWindow(const double &Offset)
             return;
 
         tree_node *Node = GetNodeFromWindowID(Root, KWMFocus.Window->WID, Space->Mode);
-        ModifySubtreeSplitRatio(KWMScreen.Current, Node, Offset, Space->Offset, Space->Mode);
+        ModifySubtreeSplitRatio(Space->Boundary, Node, Offset, Space->Offset, Space->Mode);
     }
 }
 

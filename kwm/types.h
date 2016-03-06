@@ -1,13 +1,6 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-/* TODO -- Add a dimensions struct:
-struct dimensions
-{
-    <which data type?> X, Y, Width, Height
-};
-*/
-
 #include <Carbon/Carbon.h>
 
 #include <iostream>
@@ -157,11 +150,20 @@ struct hotkey
     std::string Command;
 };
 
+struct bound_rect
+{
+    double X, Y;
+    double Width, Height;
+};
+
 struct container_offset
 {
-    double PaddingTop, PaddingBottom;
-    double PaddingLeft, PaddingRight;
     double VerticalGap, HorizontalGap;
+};
+
+struct padding_offset
+{
+    double PaddingLeft, PaddingRight, PaddingTop, PaddingBottom;
 };
 
 struct color
@@ -176,8 +178,7 @@ struct color
 
 struct node_container
 {
-    double X, Y;
-    double Width, Height;
+    bound_rect Boundary;
     container_type Type;
     split_mode SplitMode;
     double SplitRatio;
@@ -198,8 +199,7 @@ struct window_info
     std::string Owner;
     int PID, WID;
     int Layer;
-    int X, Y;
-    int Width, Height;
+    bound_rect Boundary;
 };
 
 struct window_role
@@ -210,6 +210,7 @@ struct window_role
 
 struct space_info
 {
+    bound_rect Boundary;
     container_offset Offset;
     bool Initialized;
     bool Managed;
@@ -224,8 +225,7 @@ struct screen_info
     CFStringRef Identifier;
     unsigned int ID;
 
-    int X, Y;
-    double Width, Height;
+    bound_rect Boundary;
     container_offset Offset;
 
     int ActiveSpace;
@@ -309,6 +309,7 @@ struct kwm_screen
     split_mode SplitMode;
     int PrevSpace;
 
+    padding_offset DefaultPadding;
     container_offset DefaultOffset;
     CGDirectDisplayID *Displays;
     unsigned int MaxCount;

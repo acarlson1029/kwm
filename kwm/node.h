@@ -11,7 +11,7 @@
         Node ~> Node
 
     Parameters:
-        Offset        - the Screen padding Offset
+        Offset        - the space padding Offset
         Parent        - the Parent Node from which the Leaf is derived
         WindowID      - the Element stored in the Node
         ContainerType - the type of container split:
@@ -30,11 +30,11 @@
         tree_node - the Leaf Node that was derived from the Parent Node.
 
     Called Functions:
-        container :: CreateNodeContainer(Offset, Parent->Container, ContainerType)
+        container :: CreateNodeContainer()
 
     Calling Functions:
-        node :: CreateLeafNodePair(Offset, Parent, ...)
-        serialize :: DeserializeChildNode(...)
+        node :: CreateLeafNodePair()
+        serialize :: DeserializeChildNode()
     
     Notes:
 
@@ -48,8 +48,7 @@ tree_node *CreateLeafNode(const container_offset &Offset, tree_node *Parent, int
         Node ~> Node
 
     Parameters:
-        Screen - the Display on which to create the Tree's RootNode
-        Offset - the Screen's padding Offset for the RootNode's Container.
+        SpaceBoundary - the boundary rect of the Space on which to create the Tree's RootNode
 
     Global References:
         (none)
@@ -61,19 +60,19 @@ tree_node *CreateLeafNode(const container_offset &Offset, tree_node *Parent, int
         tree_node - the created RootNode for the Tree
 
     Called Functions:
-        SetRootNodeContainer(Screen, Offset, ..)
+        SetRootNodeContainer()
 
     Calling Functions:
-        serialize :: DeserializeNodeTree(...)
-        tree      :: CreateTreeFromWindowIDList(Screen, Offset, ...)
-        tree      :: CreateMonocleTree(.., Screen, Offset, ..)
-        tree      :: AddElementToMonocleTree(Screen, Offset, ...)
+        serialize :: DeserializeNodeTree()
+        tree      :: CreateTreeFromWindowIDList()
+        tree      :: CreateMonocleTree()
+        tree      :: AddElementToMonocleTree()
     
     Notes:
 
     TODO: Refactor DeserializeNodeTree to abstract away.
 */
-tree_node *CreateRootNode(screen_info *Screen, const container_offset &Offset);
+tree_node *CreateRootNode(const bound_rect &SpaceBoundary);
 
 /* Create new Children Leaf Nodes from Parent Node
 
@@ -101,12 +100,12 @@ tree_node *CreateRootNode(screen_info *Screen, const container_offset &Offset);
         (void)
 
     Called Functions:
-        CreateLeafNode(Offset, Parent, ...)
+        CreateLeafNode()
 
     Calling Functions:
-        serialize::CreateLeafNodePair(...)
-        tree::CreateBSPTree(..., Offset, SplitModeOptimal)
-        tree::AddElementToBSPTree(Offset, Parent, Parent->WindowID, WindowID, SplitMode)
+        serialize::CreateLeafNodePair()
+        tree::CreateBSPTree()
+        tree::AddElementToBSPTree()
     
     Notes:
 */
@@ -118,10 +117,10 @@ void CreateLeafNodePair(const container_offset &Offset, tree_node *Parent, int F
         Node ~> Element
 
     Parameters:
-        Screen   - the Display of the Space of the Tree of the Node
-        Offset   - the Space padding offset/gaps
-    [M] Node     - the Node of which to set the Element
-        WindowID - the Element to set in the Node
+        SpaceBoundary - the boundary rectangle of the Space of the Tree of the Node
+        Offset        - the Space padding offset/gaps
+    [M] Node          - the Node of which to set the Element
+        WindowID      - the Element to set in the Node
         
     Global References:
         (none)
@@ -134,7 +133,7 @@ void CreateLeafNodePair(const container_offset &Offset, tree_node *Parent, int F
         (void)
 
     Called Functions:
-    [M] node :: ResizeNodeContainer(Screen, Offset, Node)
+    [M] node :: ResizeNodeContainer()
 
     Calling Functions:
         tree :: ToggleElementInTree()
@@ -142,7 +141,7 @@ void CreateLeafNodePair(const container_offset &Offset, tree_node *Parent, int F
     
     Notes:
 */
-void SetElementInNode(screen_info *Screen, const container_offset &Offset, tree_node *Node, const int &WindowID);
+void SetElementInNode(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Node, const int &WindowID);
 
 /* Clear the Element in the Node's Container
  
@@ -150,9 +149,9 @@ void SetElementInNode(screen_info *Screen, const container_offset &Offset, tree_
          Node ~> Element
      
      Parameters:
-         Screen   - the Display of the Space of the Tree of the Node
-         Offset   - the Space padding offset/gaps
-         [M] Node - the Node of which to set the Element
+         SpaceBoundary - the boundary rectangle of the Space of the Tree of the Node
+         Offset        - the Space padding offset/gaps
+         [M] Node      - the Node of which to set the Element
      
      Global References:
         (none)
@@ -165,7 +164,7 @@ void SetElementInNode(screen_info *Screen, const container_offset &Offset, tree_
         (void)
      
      Called Functions:
-        [M] node :: ResizeNodeContainer(Screen, Offset, Node)
+        [M] node :: ResizeNodeContainer()
      
      Calling Functions:
         tree :: ToggleElementInTree()
@@ -173,7 +172,7 @@ void SetElementInNode(screen_info *Screen, const container_offset &Offset, tree_
      
      Notes:
  */
-void ClearElementInNode(screen_info *Screen, const container_offset &Offset, tree_node *Node);
+void ClearElementInNode(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Node);
 
 /* Resize the Node's Container with new constraints
 
@@ -181,9 +180,9 @@ void ClearElementInNode(screen_info *Screen, const container_offset &Offset, tre
         Node ~> Container
 
     Parameters:
-        Screen - the Display of the Space of the Tree of the Node
-        Offset - the Space padding offset/gaps
-    [M] Node - the Node for which the Container is updated
+        SpaceBoundary - the boundary rectangle of the Space of the Tree of the Node
+        Offset        - the Space padding offset/gaps
+    [M] Node          - the Node for which the Container is updated
         
     Global References:
         (none)
@@ -195,19 +194,19 @@ void ClearElementInNode(screen_info *Screen, const container_offset &Offset, tre
         (void)
 
     Called Functions:
-        container::SetRootNodeContainer(Screen, Offset, &Node->Container)
-        container::CreateNodeContainer(Offset, Node->Parent, Node->Type)
+        container::SetRootNodeContainer()
+        container::CreateNodeContainer()
 
     Calling Functions:
         tree::ResizeTreeNodes
-        node::SetElementInNode(Screen, Offset, Node, ..)
-        node::ClearElementInNode(Screen, Offset, Node)
+        node::SetElementInNode()
+        node::ClearElementInNode()
     
     Notes:
 
     TODO: Add a Container function to resize the container explicitly without going over the abstraction barrier.
 */
-void ResizeNodeContainer(screen_info *Screen, const container_offset &Offset, tree_node *Node);
+void ResizeNodeContainer(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Node);
 
 /* Whether the given Node is a Leaf (has no children)
     
@@ -276,7 +275,7 @@ bool IsLeafNode(tree_node *Node);
         (none)
  
     Calling Functions:
-        node :: IsLeftLeaf(Node)
+        node :: IsLeftLeaf()
  
     Notes:
 */
@@ -305,7 +304,7 @@ bool IsLeftChild(tree_node *Node);
          (none)
  
      Calling Functions:
-         node :: IsRightLeaf(Node)
+         node :: IsRightLeaf()
  
     Notes:
  */
@@ -330,8 +329,8 @@ bool IsRightChild(tree_node *Node);
                false : not (left node and is leaf)
  
     Called Functions:
-        node :: IsLeftChild(Node)
-        node :: IsLeafNode(Node)
+        node :: IsLeftChild()
+        node :: IsLeafNode()
  
     Calling Functions:
         serialize :: CreateDeserializedNodeContainer
@@ -357,8 +356,8 @@ bool IsLeftLeaf(tree_node *Node);
                 false : not (right node and is leaf)
  
      Called Functions:
-         node :: IsRightChild(Node)
-         node :: IsLeafNode(Node)
+         node :: IsRightChild()
+         node :: IsLeafNode()
  
      Calling Functions:
          UNSUED
@@ -413,7 +412,7 @@ bool IsRootNode(tree_node *Node);
         (void)
 
     Called Functions:
-        node :: ResizeElementInNode(..)
+        node :: ResizeElementInNode()
 
     Calling Functions:
         dispatcher :: SwapFocusedWindowDirected()
@@ -446,10 +445,10 @@ void SwapNodeWindowIDs(tree_node *A, tree_node *B);
                false : SplitRatio unchanged (likely invalid arg)
 
     Called Functions:
-        container :: ModifyContainerSplitRatio(&Node->Container, Offset)
+        container :: ModifyContainerSplitRatio()
 
     Calling Functions:
-        tree :: ModifySubtreeSplitRatio(...)
+        tree :: ModifySubtreeSplitRatio()
     
     Notes:
 */
@@ -473,10 +472,10 @@ bool ModifyNodeSplitRatio(tree_node *Node, const double &Offset);
         (void)
 
     Called Functions:
-        container :: ToggleContainerSplitMode(&Node->Container)
+        container :: ToggleContainerSplitMode()
 
     Calling Functions:
-        tree :: ToggleSubtreeSplitMode(.., Offset, Node)
+        tree :: ToggleSubtreeSplitMode()
     
     Notes:
 */
@@ -503,8 +502,8 @@ void ToggleNodeSplitMode(tree_node *Node);
         container :: ResizeElementInContainer
 
     Calling Functions:
-        tree::ApplyNodeContainer(Node, ..)
-        node::SwapNodeWindowIDs(Node)
+        tree::ApplyNodeContainer()
+        node::SwapNodeWindowIDs()
         windowtree::ResizeElementInTree()
     
     Notes:
@@ -530,7 +529,7 @@ void ResizeElementInNode(tree_node *Node);
         (void)
 
     Called Functions:
-        container :: CreateNodeContainer(Offset, Parent->Container, ..)
+        container :: CreateNodeContainer()
 
     Calling Functions:
         FIXME: REMOVE IF UNUSED

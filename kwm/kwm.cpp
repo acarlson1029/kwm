@@ -237,6 +237,7 @@ void KwmInit()
     KWMScreen.MarkedWindow = -1;
     KWMScreen.PrevSpace = -1;
     KWMScreen.DefaultOffset = CreateDefaultScreenOffset();
+    KWMScreen.DefaultPadding = CreateDefaultPaddingOffset();
     KWMScreen.MaxCount = 5;
     KWMScreen.ActiveCount = 0;
 

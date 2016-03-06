@@ -1,20 +1,16 @@
 #include "tree.h"
 #include "node.h" // trees contain nodes; the next abstraction level down
 
-extern kwm_path KWMPath;
-extern kwm_screen KWMScreen;
-extern kwm_tiling KWMTiling;
-
-tree_node *CreateTreeFromWindowIDList(screen_info *Screen, const container_offset &Offset, const std::vector<window_info*> &Windows, const space_tiling_option &Mode)
+tree_node *CreateTreeFromWindowIDList(const bound_rect &SpaceBoundary, const container_offset &Offset, const std::vector<window_info*> &Windows, const space_tiling_option &Mode)
 {
-    tree_node *RootNode = CreateRootNode(Screen, Offset);
+    tree_node *RootNode = CreateRootNode(SpaceBoundary);
 
     bool Result = false;
 
     if(Mode == SpaceModeBSP)
-        Result = CreateBSPTree(RootNode, Screen, Offset, Windows);
+        Result = CreateBSPTree(RootNode, SpaceBoundary, Offset, Windows);
     else if(Mode == SpaceModeMonocle)
-        Result = CreateMonocleTree(RootNode, Screen, Offset, Windows);
+        Result = CreateMonocleTree(RootNode, SpaceBoundary, Offset, Windows);
 
     if(!Result)
     {
@@ -25,7 +21,7 @@ tree_node *CreateTreeFromWindowIDList(screen_info *Screen, const container_offse
     return RootNode;
 }
 
-bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, const container_offset &Offset, const std::vector<window_info*> &Windows)
+bool CreateBSPTree(tree_node *RootNode, const bound_rect &SpaceBoundary, const container_offset &Offset, const std::vector<window_info*> &Windows)
 {
     Assert(RootNode, "CreateBSPTree()")
 
@@ -62,7 +58,7 @@ bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, const container_off
     return Result;
 }
 
-bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const container_offset &Offset, const std::vector<window_info*> &Windows)
+bool CreateMonocleTree(tree_node *RootNode, const bound_rect &SpaceBoundary, const container_offset &Offset, const std::vector<window_info*> &Windows)
 {
     Assert(RootNode, "CreateMonocleTree()")
 
@@ -75,7 +71,7 @@ bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const container
 
         for(std::size_t WindowIndex = 1; WindowIndex < Windows.size(); ++WindowIndex)
         {
-            tree_node *Next = CreateRootNode(Screen, Offset);
+            tree_node *Next = CreateRootNode(SpaceBoundary);
             Next->WindowID = Windows[WindowIndex]->WID;
 
             Root->RightChild = Next;
@@ -105,9 +101,9 @@ void ApplyNodeContainer(tree_node *Node, space_tiling_option Mode)
     }
 }
 
-void ResizeTreeNodes(screen_info *Screen, const container_offset &Offset, tree_node *Root)
+void ResizeTreeNodes(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Root)
 {
-    PreOrderTraversal(ResizeNodeContainer, Screen, Offset, Root);
+    PreOrderTraversal(ResizeNodeContainer, SpaceBoundary, Offset, Root);
 }
 
 void DestroyNodeTree(tree_node *Node, space_tiling_option Mode)
@@ -151,13 +147,13 @@ void RotateTree(tree_node *Node, int Deg)
 
 }
 
-void ToggleSubtreeSplitMode(screen_info *Screen, const container_offset &Offset, tree_node *Node)
+void ToggleSubtreeSplitMode(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Node)
 {
     if(!Node || IsLeafNode(Node))
         return;
 
     ToggleNodeSplitMode(Node);
-    ResizeTreeNodes(Screen, Offset, Node);
+    ResizeTreeNodes(SpaceBoundary, Offset, Node);
     ApplyNodeContainer(Node, SpaceModeBSP);
 }
 
@@ -274,13 +270,13 @@ tree_node *GetNearestNodeToTheRight(tree_node *Node, space_tiling_option Mode)
     return NULL;
 }
 
-void PreOrderTraversal(void (*f)(screen_info *Screen, const container_offset &Offset, tree_node *Root), screen_info *Screen, const container_offset &Offset, tree_node *Root)
+void PreOrderTraversal(void (*f)(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Root), const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Root)
 {
     if(Root)
     {
-        f(Screen, Offset, Root);
-        PreOrderTraversal(f, Screen, Offset, Root->LeftChild);
-        PreOrderTraversal(f, Screen, Offset, Root->RightChild);
+        f(SpaceBoundary, Offset, Root);
+        PreOrderTraversal(f, SpaceBoundary, Offset, Root->LeftChild);
+        PreOrderTraversal(f, SpaceBoundary, Offset, Root->RightChild);
     }
 }
 
@@ -318,18 +314,18 @@ void AddElementToBSPTree(const container_offset &Offset, tree_node *NewParent, i
     }
 }
 
-void AddElementToMonocleTree(screen_info *Screen, const container_offset &Offset, tree_node *NewParent, int WindowID) // TODO replace WindowID with element
+void AddElementToMonocleTree(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *NewParent, int WindowID) // TODO replace WindowID with element
 {
     Assert(!NewParent->RightChild, "AddElementToMonocleTree()")
 
-    tree_node *NewNode = CreateRootNode(Screen, Offset);
+    tree_node *NewNode = CreateRootNode(SpaceBoundary);
 
     NewNode->WindowID = WindowID;
     NewNode->LeftChild = NewParent;
     NewParent->RightChild = NewNode;
 }
 
-void AddElementToTree(screen_info *Screen, const container_offset &Offset, tree_node *NewParent, int WindowID, const split_mode &SplitMode, const space_tiling_option &Mode)
+void AddElementToTree(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *NewParent, int WindowID, const split_mode &SplitMode, const space_tiling_option &Mode)
 {
     switch(Mode)
     {
@@ -337,7 +333,7 @@ void AddElementToTree(screen_info *Screen, const container_offset &Offset, tree_
             AddElementToBSPTree(Offset, NewParent, WindowID, SplitMode);
             break;
         case SpaceModeMonocle:
-            AddElementToMonocleTree(Screen, Offset, NewParent, WindowID);
+            AddElementToMonocleTree(SpaceBoundary, Offset, NewParent, WindowID);
             break;
 
         default:
@@ -347,7 +343,7 @@ void AddElementToTree(screen_info *Screen, const container_offset &Offset, tree_
     ApplyNodeContainer(NewParent, Mode);
 }
 
-void RemoveElementFromBSPTree(screen_info *Screen, space_info *Space, tree_node *Node)
+void RemoveElementFromBSPTree(const bound_rect &SpaceBoundary, space_info *Space, tree_node *Node)
 {
     if(Node)
     {
@@ -384,7 +380,7 @@ void RemoveElementFromBSPTree(screen_info *Screen, space_info *Space, tree_node 
         free(Node);
         free(Parent);
 
-        ResizeTreeNodes(Screen, Space->Offset, ResizeRoot);
+        ResizeTreeNodes(SpaceBoundary, Space->Offset, ResizeRoot);
         ApplyNodeContainer(ResizeRoot, Space->Mode);
     }
 }
@@ -409,7 +405,7 @@ void RemoveElementFromMonocleTree(space_info *Space, tree_node *Node)
     }
 }
 
-void RemoveElementFromTree(screen_info *Screen, space_info *Space,  tree_node *Root, int WindowID, const space_tiling_option &Mode)
+void RemoveElementFromTree(const bound_rect &SpaceBoundary, space_info *Space,  tree_node *Root, int WindowID, const space_tiling_option &Mode)
 {
     if(Root)
     {
@@ -418,7 +414,7 @@ void RemoveElementFromTree(screen_info *Screen, space_info *Space,  tree_node *R
         switch(Mode)
         {
             case SpaceModeBSP:
-                RemoveElementFromBSPTree(Screen, Space, Node);
+                RemoveElementFromBSPTree(SpaceBoundary, Space, Node);
                 break;
             case SpaceModeMonocle:
                 RemoveElementFromMonocleTree(Space, Node);
@@ -431,16 +427,16 @@ void RemoveElementFromTree(screen_info *Screen, space_info *Space,  tree_node *R
     }
 }
 
-void ModifySubtreeSplitRatio(screen_info *Screen, tree_node *Root, const double &Delta, const container_offset &Offset, const space_tiling_option &Mode)
+void ModifySubtreeSplitRatio(const bound_rect &SpaceBoundary, tree_node *Root, const double &Delta, const container_offset &Offset, const space_tiling_option &Mode)
 {
     if(Root && ModifyNodeSplitRatio(Root->Parent, Delta))
     {
-        ResizeTreeNodes(Screen, Offset, Root->Parent);
+        ResizeTreeNodes(SpaceBoundary, Offset, Root->Parent);
         ApplyNodeContainer(Root->Parent, Mode);
     }
 }
 
-bool ToggleElementInTree(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode, const container_offset &Offset)
+bool ToggleElementInTree(const bound_rect &SpaceBoundary, tree_node *Root, const int &WindowID, const space_tiling_option &Mode, const container_offset &Offset)
 {
     if(Mode != SpaceModeBSP)
         return false;
@@ -452,12 +448,12 @@ bool ToggleElementInTree(screen_info *Screen, tree_node *Root, const int &Window
         if(IsLeafNode(Node) && Node->Parent->WindowID == -1) // TODO Add a function to check if node has elements or is just a parent.
         {
             DEBUG("ToggleElementInTree() Set Element In Node")
-            SetElementInNode(Screen, Offset, Node, WindowID);
+            SetElementInNode(SpaceBoundary, Offset, Node, WindowID);
         }
         else
         {
             DEBUG("ToggleElementInTree() Restore Element In Node")
-            ClearElementInNode(Screen, Offset, Node);
+            ClearElementInNode(SpaceBoundary, Offset, Node);
         }
         return true;
     }
@@ -465,7 +461,7 @@ bool ToggleElementInTree(screen_info *Screen, tree_node *Root, const int &Window
     return false;
 }
 
-bool ToggleElementInRoot(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode, const container_offset &Offset)
+bool ToggleElementInRoot(const bound_rect &SpaceBoundary, tree_node *Root, const int &WindowID, const space_tiling_option &Mode, const container_offset &Offset)
 {
     if(Mode != SpaceModeBSP || IsLeafNode(Root))
         return false;
@@ -478,15 +474,15 @@ bool ToggleElementInRoot(screen_info *Screen, tree_node *Root, const int &Window
         if(Node) // if it was found
         {
             DEBUG("ToggleElementInRoot() Set root element")
-            SetElementInNode(Screen, Offset, Root, WindowID);
+            SetElementInNode(SpaceBoundary, Offset, Root, WindowID);
         }
     }
     else
     {
         DEBUG("ToggleElementInRoot() Clear root element")
-        ClearElementInNode(Screen, Offset, Root);
+        ClearElementInNode(SpaceBoundary, Offset, Root);
         tree_node *Node = GetNodeFromWindowID(Root, WindowID, Mode);
-        SetElementInNode(Screen, Offset, Node, WindowID); // resize the window back to fit its container
+        SetElementInNode(SpaceBoundary, Offset, Node, WindowID); // resize the window back to fit its container
     }
     return true;
 }

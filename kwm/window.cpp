@@ -111,10 +111,10 @@ bool IsAnyWindowBelowCursor()
     for(std::size_t WindowIndex = 0; WindowIndex < KWMTiling.FocusLst.size(); ++WindowIndex)
     {
         window_info *Window = &KWMTiling.FocusLst[WindowIndex];
-        if(Cursor.x >= Window->X &&
-           Cursor.x <= Window->X + Window->Width &&
-           Cursor.y >= Window->Y &&
-           Cursor.y <= Window->Y + Window->Height)
+        if(Cursor.x >= Window->Boundary.X &&
+           Cursor.x <= Window->Boundary.X + Window->Boundary.Width &&
+           Cursor.y >= Window->Boundary.Y &&
+           Cursor.y <= Window->Boundary.Y + Window->Boundary.Height)
             return true;
     }
 
@@ -126,10 +126,10 @@ bool IsWindowBelowCursor(window_info *Window)
     Assert(Window, "IsWindowBelowCursor()")
 
     CGPoint Cursor = GetCursorPos();
-    if(Cursor.x >= Window->X &&
-       Cursor.x <= Window->X + Window->Width &&
-       Cursor.y >= Window->Y &&
-       Cursor.y <= Window->Y + Window->Height)
+    if(Cursor.x >= Window->Boundary.X &&
+       Cursor.x <= Window->Boundary.X + Window->Boundary.Width &&
+       Cursor.y >= Window->Boundary.Y &&
+       Cursor.y <= Window->Boundary.Y + Window->Boundary.Height)
         return true;
 
     return false;
@@ -211,8 +211,8 @@ void FocusWindowBelowCursor()
             continue;
 
         if(KWMTiling.FocusLst[WindowIndex].Owner == "Dock" &&
-           KWMTiling.FocusLst[WindowIndex].X == 0 &&
-           KWMTiling.FocusLst[WindowIndex].Y == 0)
+           KWMTiling.FocusLst[WindowIndex].Boundary.X == 0 &&
+           KWMTiling.FocusLst[WindowIndex].Boundary.Y == 0)
             continue;
 
         if(IsWindowBelowCursor(&KWMTiling.FocusLst[WindowIndex]) && ShouldWindowGainFocus(&KWMTiling.FocusLst[WindowIndex]))
@@ -255,20 +255,20 @@ bool WindowIsInDirection(window_info *A, window_info *B, int Degrees, bool Wrap)
     if(Wrap)
     {
         if(Degrees == 0 || Degrees == 180)
-            return A->Y != B->Y && fmax(A->X, B->X) < fmin(B->X + B->Width, A->X + A->Width);
+            return A->Boundary.Y != B->Boundary.Y && fmax(A->Boundary.X, B->Boundary.X) < fmin(B->Boundary.X + B->Boundary.Width, A->Boundary.X + A->Boundary.Width);
         else if(Degrees == 90 || Degrees == 270)
-            return A->X != B->X && fmax(A->Y, B->Y) < fmin(B->Y + B->Height, A->Y + A->Height);
+            return A->Boundary.X != B->Boundary.X && fmax(A->Boundary.Y, B->Boundary.Y) < fmin(B->Boundary.Y + B->Boundary.Height, A->Boundary.Y + A->Boundary.Height);
     }
     else
     {
         if(Degrees == 0)
-            return B->Y + B->Height < A->Y;
+            return B->Boundary.Y + B->Boundary.Height < A->Boundary.Y;
         else if(Degrees == 90)
-            return B->X > A->X + A->Width;
+            return B->Boundary.X > A->Boundary.X + A->Boundary.Width;
         else if(Degrees == 180)
-            return B->Y > A->Y + A->Height;
+            return B->Boundary.Y > A->Boundary.Y + A->Boundary.Height;
         else if(Degrees == 270)
-            return B->X + B->Width < A->X;
+            return B->Boundary.X + B->Boundary.Width < A->Boundary.X;
     }
 
     return false;
@@ -276,8 +276,8 @@ bool WindowIsInDirection(window_info *A, window_info *B, int Degrees, bool Wrap)
 
 void GetCenterOfWindow(window_info *Window, int *X, int *Y)
 {
-    *X = Window->X + Window->Width / 2;
-    *Y = Window->Y + Window->Height / 2;
+    *X = Window->Boundary.X + Window->Boundary.Width / 2;
+    *Y = Window->Boundary.Y + Window->Boundary.Height / 2;
 }
 
 double GetWindowDistance(window_info *A, window_info *B)
@@ -323,13 +323,13 @@ bool FindClosestWindow(int Degrees, window_info *Target, bool Wrap)
 
                 window_info WrappedWindow = Windows[Index];
                 if(Degrees == 0 && MatchY < WindowY)
-                    WrappedWindow.Y -= KWMScreen.Current->Height;
+                    WrappedWindow.Boundary.Y -= KWMScreen.Current->Boundary.Height;
                 else if(Degrees == 180 && MatchY > WindowY)
-                    WrappedWindow.Y += KWMScreen.Current->Height;
+                    WrappedWindow.Boundary.Y += KWMScreen.Current->Boundary.Height;
                 else if(Degrees == 90 && MatchX > WindowX)
-                    WrappedWindow.X += KWMScreen.Current->Width;
+                    WrappedWindow.Boundary.X += KWMScreen.Current->Boundary.Width;
                 else if(Degrees == 270 && MatchX < WindowX)
-                    WrappedWindow.X -= KWMScreen.Current->Width;
+                    WrappedWindow.Boundary.X -= KWMScreen.Current->Boundary.Width;
 
                 FocusWindow = WrappedWindow;
             }
@@ -451,13 +451,13 @@ void GetWindowInfo(const void *Key, const void *Value, void *Context)
         else if(KeyStr == "kCGWindowLayer")
             KWMTiling.WindowLst[KWMTiling.WindowLst.size()-1].Layer = MyInt;
         else if(KeyStr == "X")
-            KWMTiling.WindowLst[KWMTiling.WindowLst.size()-1].X = MyInt;
+            KWMTiling.WindowLst[KWMTiling.WindowLst.size()-1].Boundary.X = MyInt;
         else if(KeyStr == "Y")
-            KWMTiling.WindowLst[KWMTiling.WindowLst.size()-1].Y = MyInt;
+            KWMTiling.WindowLst[KWMTiling.WindowLst.size()-1].Boundary.Y = MyInt;
         else if(KeyStr == "Width")
-            KWMTiling.WindowLst[KWMTiling.WindowLst.size()-1].Width = MyInt;
+            KWMTiling.WindowLst[KWMTiling.WindowLst.size()-1].Boundary.Width = MyInt;
         else if(KeyStr == "Height")
-            KWMTiling.WindowLst[KWMTiling.WindowLst.size()-1].Height = MyInt;
+            KWMTiling.WindowLst[KWMTiling.WindowLst.size()-1].Boundary.Height = MyInt;
     }
     else if(ID == CFDictionaryGetTypeID())
     {

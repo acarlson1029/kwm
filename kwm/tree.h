@@ -1,12 +1,3 @@
-// TODO -- Replace references to "Screen" with a "space dimensions" struct of some kind;
-//      OR Offset and the dimensions are used for the same purpose -- calculating container boundaries.
-//         Can the Space use the Display dimensions plus its own Offset to just pass this bound info?
-//         `-> this would be a single "dimensions" struct: X,Y,W,H
-//      BUT the Offset contains GAP info (vertical gap between containers, for example)
-//      Bounding box only used in CreateRootNodeContainer
-//      Gaps only used in creating other containers
-//      Maybe the two args will be (1) space bounds, (2) container gaps passed from Space layer
-
 /* Functions that operate on Trees and Nodes */
 #ifndef TREE_H
 #define TREE_H
@@ -20,8 +11,8 @@
 
     Parameters:
     [M] RootNode - Make this the Root of the created Tree.
-        Screen   - the Display the Tree is being added on.
-        Offset   - the Screen offset padding.
+        SpaceBoundary - the boundary rect of the Space
+        Offset   - the Space gap offset padding.
         Windows  - the list of Windows to be added to the tree.
         
     Mutations:
@@ -36,15 +27,14 @@
         node :: CreateLeafNodePair(Offset, ..., SplitModeOptimal)
 
     Calling Functions:
-        CreateTreeFromWindowIDList(Screen, Offset, Windows)
+        CreateTreeFromWindowIDList()
     
     Notes:
 
-    TODO: This function doesn't need Screen (it's just used for the RootNode creation in the calling function)
     TODO: This function should just call AddElementToTree for each Window
     TODO: This function should genericize the input to "Elements" instead of "Windows"
 */
-bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, const container_offset &Offset, const std::vector<window_info*> &Windows);
+bool CreateBSPTree(tree_node *RootNode, const bound_rect &SpaceBoundary, const container_offset &Offset, const std::vector<window_info*> &Windows);
 
 /* Create a Monocle Tree starting at the RootNode from a list of Windows
 
@@ -53,8 +43,8 @@ bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, const container_off
 
     Parameters:
     [M] RootNode - Make this the Root of the created Tree.
-        Screen   - the Display the Tree is being added on.
-        Offset   - the Screen offset padding.
+        SpaceBoundary - the boundary rect of the Space
+        Offset   - the Space gap offset padding.
         Windows  - the list of Windows to be added to the tree.
         
     Mutations:
@@ -65,17 +55,17 @@ bool CreateBSPTree(tree_node *RootNode, screen_info *Screen, const container_off
                false : No Tree created (empty Element list)
 
     Called Functions:
-        node :: CreateRootNode(Screen, Offset)
+        node :: CreateRootNode()
 
     Calling Functions:
-        CreateTreeFromWindowIDList(Screen, Offset, Windows)
+        CreateTreeFromWindowIDList()
     
     Notes:
 
     TODO: This function should just call AddElementToTree for each Window
     TODO: This function should genericize the input to "Elements" instead of "Windows"
 */
-bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const container_offset &Offset, const std::vector<window_info*> &Windows);
+bool CreateMonocleTree(tree_node *RootNode, const bound_rect &SpaceBoundary, const container_offset &Offset, const std::vector<window_info*> &Windows);
 
 /* Create a BSP or Monocle Tree for a list of Windows
 
@@ -83,7 +73,7 @@ bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const container
         Tree ~> Tree
 
     Parameters:
-        Screen  - the Display to create the tree on
+        SpaceBoundary - the boundary rect of the Space
         Offset  - the Offset to use when creating the container.
         Windows - the Elements to add to the tree.
         Mode    - the Space Tiling Mode
@@ -97,16 +87,16 @@ bool CreateMonocleTree(tree_node *RootNode, screen_info *Screen, const container
                     NULL if tree not created
 
     Called Functions:
-        tree :: CreateBSPTree(.., Screen, Offset, Windows)
-        tree :: CreateMonocleTree(.., Screen, Offset, Windows)
+        tree :: CreateBSPTree()
+        tree :: CreateMonocleTree()
         
     Calling Functions:
-        windowtree :: CreateWindowNodeTree(Screen, Windows)
+        windowtree :: CreateWindowNodeTree()
     
     Notes:
     
 */
-tree_node *CreateTreeFromWindowIDList(screen_info *Screen, const container_offset &Offset, const std::vector<window_info*> &Windows, const space_tiling_option &Mode);
+tree_node *CreateTreeFromWindowIDList(const bound_rect &SpaceBoundary, const container_offset &Offset, const std::vector<window_info*> &Windows, const space_tiling_option &Mode);
 
 /* Recursively destroy the subtree and deallocate memory starting at Node
     Input:
@@ -119,20 +109,20 @@ void DestroyNodeTree(tree_node *Node, space_tiling_option Mode);
 
 /* Create new Nodes for Element, and insert them into the Tree */
 void AddElementToBSPTree(const container_offset &Offset, tree_node *NewParent, int WindowID, const split_mode &SplitMode);
-void AddElementToMonocleTree(screen_info *Screen, const container_offset &Offset, tree_node *NewParent, int WindowID);
-void AddElementToTree(screen_info *Screen, const container_offset &Offset, tree_node *NewParent, int WindowID, const split_mode &SplitMode, const space_tiling_option &Mode);
+void AddElementToMonocleTree(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *NewParent, int WindowID);
+void AddElementToTree(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *NewParent, int WindowID, const split_mode &SplitMode, const space_tiling_option &Mode);
 
 /* Remove Element from Tree, and delete the Node if necessary. Rearranges the Tree */
-void RemoveElementFromBSPTree(screen_info *Screen, space_info *Space, tree_node *Node);
+void RemoveElementFromBSPTree(const bound_rect &SpaceBoundary, space_info *Space, tree_node *Node);
 void RemoveElementFromMonocleTree(space_info *Space, tree_node *Node);
-void RemoveElementFromTree(screen_info *Screen, space_info *Space, tree_node *Root, int WindowID, const space_tiling_option &Mode);
+void RemoveElementFromTree(const bound_rect &SpaceBoundary, space_info *Space, tree_node *Root, int WindowID, const space_tiling_option &Mode);
 
 /* Promote Element in Tree. Assign the Element its Node's Parent, using its Container
  * This is useful for things like toggling a Window to fill its parent container, or 
  * toggling a window to go fullscreen (Root node container) */
 // TODO Can these functions be combined?
-bool ToggleElementInTree(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode, const container_offset &Offset);
-bool ToggleElementInRoot(screen_info *Screen, tree_node *Root, const int &WindowID, const space_tiling_option &Mode, const container_offset &Offset);
+bool ToggleElementInTree(const bound_rect &SpaceBoundary, tree_node *Root, const int &WindowID, const space_tiling_option &Mode, const container_offset &Offset);
+bool ToggleElementInRoot(const bound_rect &SpaceBoundary, tree_node *Root, const int &WindowID, const space_tiling_option &Mode, const container_offset &Offset);
 
 /* Recursively swap left and right children according to Deg
     Input:
@@ -161,28 +151,28 @@ void ApplyNodeContainer(tree_node *Node, space_tiling_option Mode);
     Map:
         Container Resize -> tree
     Input:
-        Screen - passthrough to container functions
+        SpaceBoundary - the boundary rect of the Space
         Root - the root node of the tree to resize containers for,
                based off of Root.Container
     Output:
         tree_node *Root - mutate the containers of all nodes in the tree starting from Root.
  */
-void ResizeTreeNodes(screen_info *Screen, const container_offset &Offset, tree_node *Root);
+void ResizeTreeNodes(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Root);
 
 /* Change split_mode for node, 
    recursively create new containers for subtree, and
    recursively resize all windows to fit in subtree node containers.
     Input:
-        Screen - used for creating containers
+        SpaceBoundary - the boundary rect of the Space
         Node - root of subtree to process
     Output:
         tree_node *Node - Mutate SplitMode, Container, 
                           containers all nodes in subtree, and 
                           window size in all nodes of subtree.
 */
-void ToggleSubtreeSplitMode(screen_info *Screen, const container_offset &Offset, tree_node *Node);
+void ToggleSubtreeSplitMode(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Node);
 
-void ModifySubtreeSplitRatio(screen_info *Screen, tree_node *Root, const double &Delta, const container_offset &Offset, const space_tiling_option &Mode);
+void ModifySubtreeSplitRatio(const bound_rect &SpaceBoundary, tree_node *Root, const double &Delta, const container_offset &Offset, const space_tiling_option &Mode);
 
 /* Tree traversal/selection */
 /* GET functions -- no mutation of inputs */
@@ -197,7 +187,7 @@ tree_node *GetNodeFromWindowID(tree_node *Node, int WindowID, space_tiling_optio
 /* Traversal helper functions */
 
 /* Apply function *f to each Node in the Tree */
-void PreOrderTraversal(void (*f)(screen_info *Screen, const container_offset &Offset, tree_node *Root), screen_info *Screen, const container_offset &Offset, tree_node *Root);
+void PreOrderTraversal(void (*f)(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Root), const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Root);
 /* Search the Nodes in the tree, until is_match(Node) returns true */
 tree_node *LevelOrderSearch(bool (*is_match)(tree_node *), tree_node *Root);
 

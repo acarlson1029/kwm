@@ -456,7 +456,7 @@ bool IsActiveSpaceFloating();
         space       :: ToggleFocusedSpaceFloating()
 
     Notes:
-      - If we aren't in a tiling space, collect windows, destroy the existing 
+      - If we aren't in a tiling space, collect windows, filter by Space, destroy the existing 
         tree, and create a tiling tree.
 
     TODO: Genercize to Tile any given Space

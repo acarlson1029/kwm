@@ -85,17 +85,17 @@ void CreateWindowNodeTree(screen_info *Screen, std::vector<window_info*> *Window
         Space->Initialized = true;
         Space->Offset = Screen->Offset;
         if(!IsSpaceFloating(Screen->ActiveSpace))
-            Space->RootNode = CreateTreeFromWindowIDList(Screen, Space->Offset, *Windows, Space->Mode);
+            Space->RootNode = CreateTreeFromWindowIDList(Space->Boundary, Space->Offset, *Windows, Space->Mode);
         else
             Space->RootNode = NULL;
     }
     else if(Space->Initialized)
     {
         if(!IsSpaceFloating(Screen->ActiveSpace))
-            Space->RootNode = CreateTreeFromWindowIDList(Screen, Space->Offset, *Windows, Space->Mode);
+            Space->RootNode = CreateTreeFromWindowIDList(Space->Boundary, Space->Offset, *Windows, Space->Mode);
         else
             Space->RootNode = NULL;
-        ResizeTreeNodes(Screen, Space->Offset, Space->RootNode);
+        ResizeTreeNodes(Space->Boundary, Space->Offset, Space->RootNode);
         ApplyNodeContainer(Space->RootNode, Space->Mode);
     }
 
@@ -281,7 +281,7 @@ void AddWindowToBSPTree(screen_info *Screen, int WindowID)
         CurrentNode = GetNodeFromWindowID(RootNode, KWMScreen.MarkedWindow, Space->Mode); // TODO: change Space->Mode to SpaceModeBSP
         ClearMarkedWindow();
     }
-    AddElementToTree(Screen, Space->Offset, CurrentNode, WindowID, KWMScreen.SplitMode, SpaceModeBSP);
+    AddElementToTree(Space->Boundary, Space->Offset, CurrentNode, WindowID, KWMScreen.SplitMode, SpaceModeBSP);
 }
 
 void AddWindowToBSPTree()
@@ -300,7 +300,7 @@ void AddWindowToMonocleTree(screen_info *Screen, int WindowID)
     space_info *Space = GetActiveSpaceOfScreen(Screen);
     tree_node *CurrentNode = GetLastLeafNode(Space->RootNode);
 
-    AddElementToTree(Screen, Space->Offset, CurrentNode, WindowID, SplitModeUnset, SpaceModeMonocle);
+    AddElementToTree(Space->Boundary, Space->Offset, CurrentNode, WindowID, SplitModeUnset, SpaceModeMonocle);
 }
 
 void AddWindowToTreeOfUnfocusedMonitor(screen_info *Screen, window_info *Window)
@@ -333,7 +333,7 @@ void AddWindowToTreeOfUnfocusedMonitor(screen_info *Screen, window_info *Window)
             DEBUG("AddWindowToTreeOfUnfocusedMonitor() Monocle Space")
             CurrentNode = GetLastLeafNode(Space->RootNode);
         }
-        AddElementToTree(Screen, Space->Offset, CurrentNode, Window->WID, KWMScreen.SplitMode, Space->Mode);
+        AddElementToTree(Space->Boundary, Space->Offset, CurrentNode, Window->WID, KWMScreen.SplitMode, Space->Mode);
     }
     else
     {
@@ -348,7 +348,7 @@ void RemoveWindowFromBSPTree(screen_info *Screen, int WindowID, bool Refresh)
         return;
 
     space_info *Space = GetActiveSpaceOfScreen(Screen);
-    RemoveElementFromTree(Screen, Space, Space->RootNode, WindowID, Space->Mode); // TODO hardcode the Space->Mode to SpaceModeBSP
+    RemoveElementFromTree(Space->Boundary, Space, Space->RootNode, WindowID, SpaceModeBSP);
 
     if(Refresh)
     {
@@ -371,7 +371,7 @@ void RemoveWindowFromMonocleTree(screen_info *Screen, int WindowID)
         return;
 
     space_info *Space = GetActiveSpaceOfScreen(Screen);
-    RemoveElementFromTree(Screen, Space, Space->RootNode, WindowID, Space->Mode); // TODO hard-code SpaceModeMonocle
+    RemoveElementFromTree(Space->Boundary, Space, Space->RootNode, WindowID, SpaceModeMonocle);
 
     SetWindowFocusByNode(GetFirstLeafNode(Space->RootNode));
     MoveCursorToCenterOfFocusedWindow();

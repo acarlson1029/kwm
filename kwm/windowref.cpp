@@ -199,7 +199,7 @@ void SetWindowRefFocus(AXUIElementRef WindowRef, window_info *Window, bool Notif
         Space->FocusedNode = GetNodeFromWindowID(Space->RootNode, Window->WID, Space->Mode);
     }
 
-    DEBUG("SetWindowRefFocus() Focused Window: " << KWMFocus.Window->Name << " " << KWMFocus.Window->X << "," << KWMFocus.Window->Y)
+    DEBUG("SetWindowRefFocus() Focused Window: " << KWMFocus.Window->Name << " " << KWMFocus.Window->Boundary.X << "," << KWMFocus.Window->Boundary.Y)
     if(KWMMode.Focus != FocusModeDisabled &&
        KWMMode.Focus != FocusModeAutofocus &&
        KWMToggles.StandbyOnFloat)
@@ -285,10 +285,10 @@ void SetWindowDimensions(AXUIElementRef WindowRef, window_info *Window, int X, i
 
     if(UpdateWindowInfo)
     {
-        Window->X = X;
-        Window->Y = Y;
-        Window->Width = Width;
-        Window->Height = Height;
+        Window->Boundary.X = X;
+        Window->Boundary.Y = Y;
+        Window->Boundary.Width = Width;
+        Window->Boundary.Height = Height;
         UpdateBorder("focused");
     }
 
@@ -304,8 +304,8 @@ void ResizeWindowToContainerSize(window_info *Window, node_container *Container)
         if(GetWindowRef(Window, &WindowRef))
         {
             SetWindowDimensions(WindowRef, Window,
-                        Container->X, Container->Y,
-                        Container->Width, Container->Height);
+                        Container->Boundary.X, Container->Boundary.Y,
+                        Container->Boundary.Width, Container->Boundary.Height);
 
             if(WindowsAreEqual(Window, KWMFocus.Window))
                 KWMFocus.Cache = *Window;
@@ -318,10 +318,10 @@ void CenterWindow(screen_info *Screen, window_info *Window)
     AXUIElementRef WindowRef;
     if(GetWindowRef(Window, &WindowRef))
     {
-        int NewX = Screen->X + Screen->Width / 4;
-        int NewY = Screen->Y + Screen->Height / 4;
-        int NewWidth = Screen->Width / 2;
-        int NewHeight = Screen->Height / 2;
+        int NewX = Screen->Boundary.X + Screen->Boundary.Width / 4;
+        int NewY = Screen->Boundary.Y + Screen->Boundary.Height / 4;
+        int NewWidth = Screen->Boundary.Width / 2;
+        int NewHeight = Screen->Boundary.Height / 2;
         SetWindowDimensions(WindowRef, Window, NewX, NewY, NewWidth, NewHeight);
     }
 }
