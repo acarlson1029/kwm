@@ -8,6 +8,7 @@
 #include "interpreter.h"
 #include "border.h"
 #include "windowtree.h"
+#include "dispatcher.h"
 
 const std::string KwmCurrentVersion = "Kwm Version 1.1.2";
 
@@ -331,7 +332,7 @@ int main(int argc, char **argv)
                          (1 << kCGEventKeyUp) |
                          (1 << kCGEventMouseMoved));
 
-    KWMMach.EventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, 0, KWMMach.EventMask, CGEventCallback, NULL);
+    KWMMach.EventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault, KWMMach.EventMask, CGEventCallback, NULL);
     if(!KWMMach.EventTap || !CGEventTapIsEnabled(KWMMach.EventTap))
         Fatal("ERROR: Could not create event-tap!");
 
