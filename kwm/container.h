@@ -158,6 +158,8 @@ void SetRootNodeContainer(const bound_rect &SpaceBoundary, node_container *Conta
         but do we ever modify the split ratio without updating the containers?
         Should it happen in one step, or let the calling functions do it?
       - i.e. call ResizeElementInContainer in this function.
+        -> I'd rather leave it up to a calling function, since we can modify
+           a bunch of containers and then multithreaded resize.
     
     TODO: performance testing for ResizeElementInContainer.
 */
