@@ -45,7 +45,6 @@ struct kwm_path;
 struct kwm_focus;
 struct kwm_screen;
 struct kwm_tiling;
-struct kwm_cache;
 struct kwm_mode;
 struct kwm_thread;
 
@@ -201,6 +200,7 @@ struct window_info
     int Layer;
     bound_rect Boundary;
     CFTypeRef Role, SubRole;
+    AXUIElementRef Reference;
 };
 
 struct window_role
@@ -331,12 +331,6 @@ struct kwm_tiling
     std::vector<window_info> FocusLst;
     std::vector<window_info> WindowLst;
     std::vector<int> FloatingWindowLst;
-};
-
-struct kwm_cache
-{
-    std::map<int, window_role> WindowRole;
-    std::map<int, std::vector<AXUIElementRef> > WindowRefs;
 };
 
 struct kwm_mode

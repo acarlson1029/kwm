@@ -13,7 +13,6 @@ extern kwm_focus KWMFocus;
 extern kwm_toggles KWMToggles;
 extern kwm_mode KWMMode;
 extern kwm_tiling KWMTiling;
-extern kwm_cache KWMCache;
 extern kwm_path KWMPath;
 extern kwm_border MarkedBorder;
 extern kwm_border FocusedBorder;
@@ -446,12 +445,11 @@ void GetWindowInfo(const void *Key, const void *Value, void *Context)
 bool GetWindowRole(window_info *Window)
 {
     bool Result = false;
-	AXUIElementRef WindowRef;
 
-	if(GetWindowRef(Window, &WindowRef))
+	if(GetWindowRef(Window))
 	{
-		AXUIElementCopyAttributeValue(WindowRef, kAXRoleAttribute, (CFTypeRef *)&Window->Role);
-		AXUIElementCopyAttributeValue(WindowRef, kAXSubroleAttribute, (CFTypeRef *)&Window->SubRole);
+		AXUIElementCopyAttributeValue(Window->Reference, kAXRoleAttribute, (CFTypeRef *)&Window->Role);
+		AXUIElementCopyAttributeValue(Window->Reference, kAXSubroleAttribute, (CFTypeRef *)&Window->SubRole);
 		Result = true;
 	} 
 

@@ -10,7 +10,6 @@
 #include "display.h"      // GetDisplayOfWindow()
 
 extern kwm_focus KWMFocus;
-extern kwm_cache KWMCache;
 extern kwm_mode KWMMode;
 extern kwm_screen KWMScreen;
 extern kwm_toggles KWMToggles;
@@ -64,39 +63,13 @@ CGPoint GetWindowPos(AXUIElementRef WindowRef)
     return WindowPos;
 }
 
-bool GetWindowRefFromCache(window_info *Window, AXUIElementRef *WindowRef)
-{
-    std::vector<AXUIElementRef> Elements;
-    bool IsCached = IsApplicationInCache(Window->PID, &Elements);
-
-    if(IsCached)
-    {
-        std::vector<AXUIElementRef>::iterator ElementIt, end;
-        for(ElementIt = Elements.begin(), end = Elements.end(); ElementIt != end; ++ElementIt)
-        {
-            int AppWindowRefWID = -1;
-            // Set AppWidowRefWID to the value of *ElementIt
-            _AXUIElementGetWindow(*ElementIt, &AppWindowRefWID);
-            if(AppWindowRefWID == Window->WID)
-            {
-                *WindowRef = *ElementIt;
-                return true;
-            }
-        }
-    }
-
-    if(!IsCached)
-        KWMCache.WindowRefs[Window->PID] = std::vector<AXUIElementRef>();
-
-    return false;
-}
-
-bool GetWindowRef(window_info *Window, AXUIElementRef *WindowRef)
+bool GetWindowRef(window_info *Window)
 {
     if(Window->Owner == "Dock")
         return false;
 
-    if(GetWindowRefFromCache(Window, WindowRef))
+    // Already have access to the Reference
+    if(Window->Reference)
         return true;
 
     AXUIElementRef App = AXUIElementCreateApplication(Window->PID);
@@ -115,21 +88,19 @@ bool GetWindowRef(window_info *Window, AXUIElementRef *WindowRef)
     }
 
     bool Found = false;
-    FreeWindowRefCache(Window->PID);
     CFIndex AppWindowCount = CFArrayGetCount(AppWindowLst);
     for(CFIndex WindowIndex = 0; WindowIndex < AppWindowCount; ++WindowIndex)
     {
         AXUIElementRef AppWindowRef = (AXUIElementRef)CFArrayGetValueAtIndex(AppWindowLst, WindowIndex);
         if(AppWindowRef)
         {
-            KWMCache.WindowRefs[Window->PID].push_back(AppWindowRef);
             if(!Found)
             {
                 int AppWindowRefWID = -1;
                 _AXUIElementGetWindow(AppWindowRef, &AppWindowRefWID);
                 if(AppWindowRefWID == Window->WID)
                 {
-                    *WindowRef = AppWindowRef;
+                    Window->Reference = AppWindowRef;
                     Found = true;
                 }
             }
@@ -208,9 +179,8 @@ void SetWindowRefFocus(AXUIElementRef WindowRef, window_info *Window, bool Notif
 
 void SetWindowFocus(window_info *Window)
 {
-    AXUIElementRef WindowRef;
-    if(GetWindowRef(Window, &WindowRef))
-        SetWindowRefFocus(WindowRef, Window, false);
+    if(GetWindowRef(Window))
+        SetWindowRefFocus(Window->Reference, Window, false);
 }
 
 void CenterWindowInsideNodeContainer(AXUIElementRef WindowRef, int *Xptr, int *Yptr, int *Wptr, int *Hptr)
@@ -300,10 +270,9 @@ void ResizeWindowToContainerSize(window_info *Window, node_container *Container)
 {
     if(Window)
     {
-        AXUIElementRef WindowRef;
-        if(GetWindowRef(Window, &WindowRef))
+        if(GetWindowRef(Window))
         {
-            SetWindowDimensions(WindowRef, Window,
+            SetWindowDimensions(Window->Reference, Window,
                         Container->Boundary.X, Container->Boundary.Y,
                         Container->Boundary.Width, Container->Boundary.Height);
 
@@ -315,14 +284,13 @@ void ResizeWindowToContainerSize(window_info *Window, node_container *Container)
 
 void CenterWindow(screen_info *Screen, window_info *Window)
 {
-    AXUIElementRef WindowRef;
-    if(GetWindowRef(Window, &WindowRef))
+    if(GetWindowRef(Window))
     {
         int NewX = Screen->Boundary.X + Screen->Boundary.Width / 4;
         int NewY = Screen->Boundary.Y + Screen->Boundary.Height / 4;
         int NewWidth = Screen->Boundary.Width / 2;
         int NewHeight = Screen->Boundary.Height / 2;
-        SetWindowDimensions(WindowRef, Window, NewX, NewY, NewWidth, NewHeight);
+        SetWindowDimensions(Window->Reference, Window, NewX, NewY, NewWidth, NewHeight);
     }
 }
 
@@ -333,17 +301,16 @@ void MoveFloatingWindow(int X, int Y)
        !IsApplicationFloating(KWMFocus.Window)))
         return;
 
-    AXUIElementRef WindowRef;
-    if(GetWindowRef(KWMFocus.Window, &WindowRef))
+    if(GetWindowRef(KWMFocus.Window))
     {
-        CGPoint WindowPos = GetWindowPos(WindowRef);
+        CGPoint WindowPos = GetWindowPos(KWMFocus.Window->Reference);
         WindowPos.x += X;
         WindowPos.y += Y;
 
         CFTypeRef NewWindowPos = (CFTypeRef)AXValueCreate(kAXValueTypeCGPoint, (const void*)&WindowPos);
         if(NewWindowPos)
         {
-            AXUIElementSetAttributeValue(WindowRef, kAXPositionAttribute, NewWindowPos);
+            AXUIElementSetAttributeValue(KWMFocus.Window->Reference, kAXPositionAttribute, NewWindowPos);
             CFRelease(NewWindowPos);
         }
     }
@@ -360,9 +327,8 @@ void MoveCursorToCenterOfFocusedWindow()
 {
     if(KWMToggles.UseMouseFollowsFocus && KWMFocus.Window)
     {
-        AXUIElementRef WindowRef;
-        if(GetWindowRef(KWMFocus.Window, &WindowRef))
-            MoveCursorToCenterOfWindow(WindowRef);
+        if(GetWindowRef(KWMFocus.Window))
+            MoveCursorToCenterOfWindow(KWMFocus.Window->Reference);
     }
 }
 
@@ -400,18 +366,3 @@ bool IsWindowNonResizable(AXUIElementRef WindowRef, window_info *Window, CFTypeR
 
     return false;
 }
-
-void FreeWindowRefCache(int PID)
-{
-    std::map<int, std::vector<AXUIElementRef> >::iterator It = KWMCache.WindowRefs.find(PID);
-
-    if(It != KWMCache.WindowRefs.end())
-    {
-        int NumElements = KWMCache.WindowRefs[PID].size();
-        for(int RefIndex = 0; RefIndex < NumElements; ++RefIndex)
-            CFRelease(KWMCache.WindowRefs[PID][RefIndex]);
-
-        KWMCache.WindowRefs[PID].clear();
-    }
-}
-

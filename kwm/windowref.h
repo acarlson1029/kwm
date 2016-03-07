@@ -87,54 +87,23 @@ CGSize GetWindowSize(AXUIElementRef WindowRef);
 */
 CGPoint GetWindowPos(AXUIElementRef WindowRef);
 
-/* Get the WindowRef from cache, if exists, else set KWMCache to empty for PID
- 
-    Map:
-        Window ~> WindowRef
-        
-    Parameters:
-        Window - the Window
-    [M] WindowRef - the reference to the Window
-
-    Mutations:
-        WindowRef - stores the result of the lookup, if true, else invalid
-        KWMCache.WindowRefs[Window->PID] - empty vector (if PID not cached)
-    
-    Return:
-        bool - true  : WindowRef was found in cache
-               false : WindowRef not found in cache
-
-    Called Functions:
-        application::IsApplicationInCache(Window->PID, ...)
-        _AXUIElementGetWindow(...)
-        
-    Calling Functions:
-        windowref::GetWindowRef(Window, WindowRef)
-*/
-bool GetWindowRefFromCache(window_info *Window, AXUIElementRef *WindowRef);
-
 /* Get the WindowRef of the given Window
 
     Map:
         Window ~> WindowRef
 
     Parameters:
-        Window - the Window to get the reference for
-    [M] WindowRef - the resulting WindowRef
+    [M] Window - the Window to get the reference for, storing the result in Window->Reference
 
     Global References:
-    [M] KWMCache.WindowRefs
 
     Mutations:
-        WindowRef - store the result in this variable
-        KWMCache.WindowRefs[Window->PID] - push back the AppWindowRef
+        Window->Reference - store the result in this variable
 
     Return:
         bool - whether the WindowRef was found
 
     Called Functions:
-        windowref::GetWindowRefFromCache(Window, WindowRef)
-        windowref::FreeWindowRefCache(Window->PID)
         AXUIElementCreateApplication(Window->PID)
         AXUIElementCopyAttributeValue(.., kAXWindowsAttribute, ..)
         CFArrayGetValueAtIndex(...)
@@ -143,7 +112,7 @@ bool GetWindowRefFromCache(window_info *Window, AXUIElementRef *WindowRef);
     Calling Functions:
         window::GetWindowRole(Window, ...)
         windowref::SetWindowFocus(Window, ...)
-        dispatcher::ResizeWindowToContainerSize(Window, ...)
+        windowref::ResizeWindowToContainerSize(Window, ...)
         windowref::CenterWindow(.., Window)
         windowref::MoveFloatingWindow(...)
         windowref::MoveCursorToCenterOfWindow(Window)
@@ -151,7 +120,7 @@ bool GetWindowRefFromCache(window_info *Window, AXUIElementRef *WindowRef);
     Notes:
       - Should GetWindowRole move down into the windowref layer?
 */
-bool GetWindowRef(window_info *Window, AXUIElementRef *WindowRef);
+bool GetWindowRef(window_info *Window);
 
 /* Get the WID of the currently focused Window (from OS X)
 
@@ -246,12 +215,14 @@ void SetWindowRefFocus(AXUIElementRef WindowRef, window_info *Window, bool Notif
         Window - the Window to focus
 
     Mutations:
+        (see GetWindowRef)
         (see SetWindowRefFocus)
 
     Return:
         (void)
 
     Called Functions:
+    [M] windowref::GetWindowRef(Window)
         windowref::SetWindowRefFocus(Window, .., false)
 
     Calling Functions:
@@ -373,7 +344,7 @@ void SetWindowDimensions(AXUIElementRef WindowRef, window_info *Window, int X, i
         (void)
 
     Called Functions:
-        windowref::GetWindowRef(Window, ..)
+        windowref::GetWindowRef(Window)
         windowref::SetWindowDimensions(.., Window, Container->X, Container->Y, Container->Width. Container->Height)
         windowref::WindowsAreEqual(Window, KWMFocus.Window)
 
@@ -403,7 +374,7 @@ void ResizeWindowToContainerSize(window_info *Window, node_container *Container)
         (void)
 
     Called Functions:
-        windowref::GetWindowRef(Window, ..)
+        windowref::GetWindowRef(Window)
         windowref::SetWindowDimensions(.., Window, ...)
 
     Calling Functions:
@@ -430,7 +401,7 @@ void CenterWindow(screen_info *Screen, window_info *Window);
         KWMFocus.Window->WID
 
     Mutations:
-        WindowRef of KWMFocus.Window
+        Reference of KWMFocus.Window
 
     Return:
         (void)
@@ -526,32 +497,6 @@ void MoveCursorToCenterOfWindow(window_info *Window); // immediately gets the Wi
         this function can be wrapped into.
 */
 void MoveCursorToCenterOfFocusedWindow();
-
-/* Remove the WindowRef's PID from KWMCache
-
-    Map:
-        WindowRef ~> WindowRef
-
-    Parameters:
-        PID - the PID of the process to remove from the cache
-
-    Global References:
-    [M] KWMCache.WindowRefs
-
-    Mutations:
-        KWMCache.WindowRefs[PID] is cleared
-        (see GetWindowRef)
-
-    Return:
-        (void)
-
-    Called Functions:
-        (none)
-
-    Calling Functions:
-        windowtree::GetWindowRef(...)
-*/
-void FreeWindowRefCache(int PID);
 
 /* If we can resize the WindowRef, resize it and find+remove the Window in its Tree
 

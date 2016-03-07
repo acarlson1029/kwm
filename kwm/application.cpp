@@ -3,7 +3,6 @@
 #include "windowref.h"   // SetWindowFocus, MoveCursorToCenterOfFocusedWindow
 
 extern kwm_tiling KWMTiling;
-extern kwm_cache KWMCache;
 
 void AllowRoleForApplication(std::string Application, std::string Role)
 {
@@ -28,20 +27,6 @@ void CaptureApplication(window_info *Window)
             MoveCursorToCenterOfFocusedWindow();
         }
     }
-}
-
-bool IsApplicationInCache(int PID, std::vector<AXUIElementRef> *Elements)
-{
-    bool Result = false;
-    std::map<int, std::vector<AXUIElementRef> >::iterator It = KWMCache.WindowRefs.find(PID);
-
-    if(It != KWMCache.WindowRefs.end())
-    {
-        *Elements = It->second;
-        Result = true;
-    }
-
-    return Result;
 }
 
 bool IsAppSpecificWindowRole(window_info *Window, CFTypeRef Role, CFTypeRef SubRole)
