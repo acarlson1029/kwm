@@ -201,6 +201,9 @@ struct window_info
     bound_rect Boundary;
     CFTypeRef Role, SubRole;
     AXUIElementRef Reference;
+    bool Floating;
+    bool FloatToggle;
+    bool ZoomToggle;
 };
 
 struct window_role
@@ -211,13 +214,15 @@ struct window_role
 
 struct space_info
 {
-    bound_rect Boundary;
-    container_offset Offset;
     bool Initialized;
     bool Managed;
 
+    bound_rect Boundary;
+    container_offset Offset;
     space_tiling_option Mode;
-    tree_node *FocusedNode;
+
+    tree_node *FocusedNode; // TODO replace with element/window pointers
+    tree_node *PreviousNode; // TODO replace with element/window pointers
     tree_node *RootNode;
 };
 

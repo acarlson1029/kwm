@@ -1,0 +1,149 @@
+CONFIGURATION {{{
+    - Reload Config {{{
+        kwmc config reload
+    }}}
+    - Set Config Value {{{
+        kwmc config set <attr> <val>
+    }}}
+    - Set Options {{{
+        kwmc config option <attr> <on/off>
+    }}}
+    - Key Binding {{{
+        kwmc bind <keystroke> <commands|macro|script>
+    }}}
+    - Rules {{{
+        // TODO - like options, but more specific (need C++ code to implement/enforce)
+        // Examples:
+        // float applications of a certain type
+        // Enforce splitmode for application (i.e. prioritize height over length)
+        // Group windows of application
+        // Max number of items in tree before things get collected/floated
+    }}}
+}}}
+
+RUNTIME STORAGE {{{
+ - DISPLAY {{{
+   - $D->F - focused display
+   - $D->M - marked display (global)
+   - $D->A - alternate display (last visited) (global)
+   - $D->U - user display register
+   }}}
+ - SPACE {{{
+   - $S->F - focused space (global) (essentially $D->F->C)
+   - $S->M - marked space (global)
+   - $S->C - current space (for inactive spaces) (of display)
+   - $S->A - alternate space (last visited) (of display)
+   - $S->U - user space register
+   }}}
+ - ELEMENT {{{
+   - $E->F - focused element (global)
+   - $E->M - marked element (global)
+   - $E->C - current element (state of inactive spaces)
+   - $E->P - alternate element (last visited) element
+   - $E->U - user element register
+   }}}
+ - WINDOW {{{
+   - $W->F - focused window
+   - $W->M - marked window (global)
+   - $W->C - current window (state of inactive spaces)
+   - $W->A - alternate window (last visited window) (of space)
+   - $W->U - user window register
+   }}}
+ - STACK {{{
+   holds IDs (window, element, spaces, displays)
+   push/pop/peek [-display][-space][-element][-window]
+   }}}
+}}}
+
+RUNTIME COMMANDS {{{
+    - CaptureApplication {{{
+        kwmc capture app <str? PID?> [-display <ID>] [-space <ID>] [-window] [-cursor]
+        kwmc release app <str/pid/cursor>
+    }}}
+    - Refresh {{{
+        kwmc refresh [-display <ID>] [-space <ID>] [-element <ID>] [-window <ID>]
+    }}}
+    - Focus {{{
+        kwmc focus [[-window] | [-element]] <opt> [-display] <opt> [-space] <opt>
+        kwmc focus -window <opt>
+        kwmc focus -element <opt> [-window <opt>]
+        kwmc focus -space <opt> [-element <opt> [-window <opt>]]
+        kwmc focus -display <opt> [-space <opt> [-element <opt> [-window <opt>]]]
+        opt: [first|last|prev|next|$m|$f|$c|$a|$u|<ID>|left|right|above|below|cursor] 
+        `-> $m - marked
+            $c - current (keep track of the last thing which had focus before switching away)
+            $a - alternate (the last thing that had focus before the current)
+            $u - user register (to store an ID)
+    }}}
+    - Marking {{{
+        (see Focus)
+    }}}
+    - Toggles {{{
+        kwmc toggle zoom [parent|fullscreen|left|right|top|bottom|topleft|topright|bottomleft|bottomright|rect] -<arg> <opt>
+        kwmc toggle float -<arg> <opt> (keep state)
+            arg: (window|element|space)
+        kwmc toggle (bsp|monocle) [display|space]
+    }}}
+    - Moving {{{
+        (also used for adding floating elements/windows)
+        kwmc move [src] [dst]
+        -(window) -> (X,Y) (toggles window floating)
+        -(window) -> (space)
+        -(window) -> (display)
+        -(element) -> (X,Y)
+        -(element) -> (space)
+        -(element) -> (display)
+        -(space) -> (display)
+        -(display)->(display)
+        kwmc rotate [space] [90|180|270]
+    }}}
+    - Swapping {{{
+        kwmc swap [src] [dst]
+        -(window) -> (window)
+        -(window) <-> (element)
+        -(element) <-> (element)
+        -(space) <-> (space)
+        -(display) <-> (space)
+        kwmc flip [space] [vertical|horizontal]
+    }}}
+    - Insert {{{
+        kwmc insert (element/window/empty) [tgt]
+          tgt: into element
+               left/right/above/below (element|window) (new split)
+    }}}
+    - Resizing {{{
+        kwmc adjust <tgt> <opt> <amount>
+        kwmc set <tgt> <opt> <amount>
+        tgt: display (all spaces on display)
+                paddingleft/paddingright/paddingtop/paddingbottom [int pixels]
+                splitratio [float 1 > amount > 0]
+                verticalgap/horizontalgap [int pixels]
+                splitmode (vertical/horizontal/optimal)
+            space
+                paddingleft/paddingright/paddingtop/paddingbottom
+                splitratio
+                verticalgap/horiontalgap
+                splitmode (vertical/horizontal/optimal)
+            element
+                splitratio
+                splitmode (vertical/horizontal/optimal)
+                verticalgap/horizontalgap
+            window            (windows in elements apply to element)
+                splitratio
+                splitmode (vertical/horizontal/optimal)
+                verticalgap/horizontalgap
+    }}}
+    - Float {{{
+        (float all of the windows, removing them from the trees)
+        kwmc float (window|element|space|display)
+    }}}
+}}} 
+
+RUNTIME CALLBACKS{{{
+    - On New Window
+    - On Window Add
+    - On Window Remove
+    - On Window Move
+    - On Window Swap
+    ...
+}}}
