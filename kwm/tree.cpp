@@ -157,6 +157,7 @@ void ToggleSubtreeSplitMode(const bound_rect &SpaceBoundary, const container_off
     ApplyNodeContainer(Node, SpaceModeBSP);
 }
 
+// FIXME  - (acarlson 03/07/16): Shouldn't need MODE here, just do a search
 tree_node *GetNodeFromWindowID(tree_node *Node, int WindowID, space_tiling_option Mode)
 {
     if(Node)

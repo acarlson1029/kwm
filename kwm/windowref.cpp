@@ -181,6 +181,9 @@ void SetWindowFocus(window_info *Window)
 {
     if(GetWindowRef(Window))
         SetWindowRefFocus(Window->Reference, Window, false);
+    else
+        DEBUG("SetWindowFocus() Could not get WindowRef for " << Window->Name 
+                << " (" << Window->Owner ") WID: " << Window->WID)
 }
 
 void CenterWindowInsideNodeContainer(AXUIElementRef WindowRef, int *Xptr, int *Yptr, int *Wptr, int *Hptr)
