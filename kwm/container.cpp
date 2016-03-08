@@ -2,8 +2,28 @@
 #include "window.h"    // containers hold windows; windows are the next abstraction level down
 #include "windowref.h" // ResizeWindowToContainerSize
 
+// TODO Move out of here to some configuration file
+void ChangeSplitRatio(double Value)
+{
+    if(Value > 0.0 && Value < 1.0)
+    {
+        DEBUG("ChangeSplitRatio() New Split-Ratio is " << Value)
+        KWMScreen.SplitRatio = Value;
+    }
+}
+
+split_mode GetOptimalSplitMode(const bound_rect &Rect)
+{
+    // TODO: Replace with a global config value for the optimal ratio
+    return (Rect.Width / Rect.Height) >= 1.618 ? SplitModeVertical : SplitModeHorizontal;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// GLOBAL VARIABLES
 extern kwm_screen KWMScreen; // for KWMScreen.SplitRatio config setting
 
+////////////////////////////////////////////////////////////////////////////////
+// CONSTRUCTORS
 node_container LeftVerticalContainerSplit(const container_offset &Offset, const node_container &Container)
 {
     node_container LeftContainer = Container;
@@ -42,43 +62,35 @@ node_container LowerHorizontalContainerSplit(const container_offset &Offset, con
     return LowerContainer;
 }
 
-split_mode GetOptimalSplitMode(const node_container &Container)
-{
-    return (Container.Boundary.Width / Container.Boundary.Height) >= 1.618 ? SplitModeVertical : SplitModeHorizontal;
-}
-
-node_container CreateNodeContainer(const container_offset &Offset, const node_container &ParentContainer, const container_type &ContainerType)
+node_container CreateSplitContainer(const container_offset &Offset, const node_container &ParentContainer, const container_type &ContainerType)
 {
     node_container Container;
 
     switch(ContainerType)
     {
         case ContainerLeft:
-        {
             Container = LeftVerticalContainerSplit(Offset, ParentContainer);
-        } break;
+            break;
         case ContainerRight:
-        {
             Container = RightVerticalContainerSplit(Offset, ParentContainer);
-        } break;
+            break;
         case ContainerUpper:
-        {
             Container = UpperHorizontalContainerSplit(Offset, ParentContainer);
-        } break;
+            break;
         case ContainerLower:
-        {
             Container = LowerHorizontalContainerSplit(Offset, ParentContainer);
-        } break;
+            break;
         case ContainerRoot:
         default:
-        {
-            DEBUG("CreateNodeContainer() Trying to create node_container for invalid container_type: " << ContainerType)
-        } break;
+            Assert(false, "CreateNodeContainer() Trying to create node_container for invalid container_type: " << ContainerType)
+            break;
     }
 
-    // FIXME  - (acarlson 02/28/16): Not sure if SplitRatio is correct -- should it be coming from a source already?
-    if(Container.SplitRatio == 0)
+    if(Container.SplitRatio <= 0.0 || 1.0 <= Container.SplitRatio)
+    {
+        DEBUG("CreateNodeContainer() Invalid SplitRatio inherited; Setting to default")
         Container.SplitRatio = KWMScreen.SplitRatio;
+    }
 
     Container.SplitMode = GetOptimalSplitMode(Container);
     Container.Type = ContainerType;
@@ -86,40 +98,49 @@ node_container CreateNodeContainer(const container_offset &Offset, const node_co
     return Container;
 }
 
-void SetRootNodeContainer(const bound_rect &SpaceBoundary, node_container* Container)
+node_container CreateRootContainer(const bound_rect &Boundary)
 {
-    Assert(Container, "SetRootNodeContainer()")
-
-    Container->Type = ContainerRoot;
-    Container->Boundary = SpaceBoundary;
-    Container->SplitMode = GetOptimalSplitMode(*Container);
-    Container->SplitRatio = KWMScreen.SplitRatio;
+    node_container Container;
+    Container.Type = ContainerRoot;
+    Container.Boundary = Boundary;
+    Container.SplitMode = GetOptimalSplitMode(Boundary);
+    Container.SplitRatio = KWMScreen.SplitRatio; // TODO update this global
 }
 
-void ChangeSplitRatio(double Value)
+////////////////////////////////////////////////////////////////////////////////
+// MUTATORS
+//   Note - can "set" attrubtes of a Container explicitly
+//          "set" functions will have validity checking
+
+void SetContainerSplitRatio(node_container *Container, const double &Ratio)
 {
-    if(Value > 0.0 && Value < 1.0)
-    {
-        DEBUG("ChangeSplitRatio() New Split-Ratio is " << Value)
-        KWMScreen.SplitRatio = Value;
-    }
+    if(0.0 < Ratio && Ratio < 1.0)
+        Container->SplitRatio = Ratio;
+    else
+        DEBUG("SetContainerSplitRatio() Ratio " << Ratio << " is not between 0.0 and 1.0")
 }
 
-bool ModifyContainerSplitRatio(node_container *Container, const double &Delta)
+void AdjustContainerSplitRatio(node_container *Container, const double &Delta)
 {
-    if(Container->SplitRatio + Delta <= 0.0 ||
-       Container->SplitRatio + Delta >= 1.0)
-        return false;
+    double NewRatio = Container->SplitRatio + Delta;
 
-    Container->SplitRatio += Delta;
-    return true;
+    if(0.0 < NewRatio && NewRatio < 1.0)
+        Container->SplitRatio = NewRatio;
+    else
+        DEBUG("AdjustContainerSplitRatio() New SplitRatio " << NewRatio  << " is not between 0.0 and 1.0")
 }
 
 void ToggleContainerSplitMode(node_container *Container)
 {
-    Container->SplitMode = Container->SplitMode == SplitModeVertical ? SplitModeHorizontal : SplitModeVertical;
+    if(Container->SplitMode == SplitModeVertical)
+        Container->SplitMode = SplitModeHorizontal;
+    else if(Container->SplitMode == SplitModeHorizontal)
+        Container->SplitMode = SplitModeVertical;
+    else
+        DEBUG("ToggleContainerSplitMode() Can't toggle SplitMode " << Container->SplitMode)
 }
 
+// TODO Update once we switch to the Element/Container inside Node scheme
 void ResizeElementInContainer(const int &WindowID, node_container *Container)
 {
     window_info *Window = GetWindowByID(WindowID);
