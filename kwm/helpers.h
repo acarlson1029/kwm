@@ -13,5 +13,6 @@ unsigned int ConvertHexStringToInt(std::string Hex);
 color ConvertHexRGBAToColor(unsigned int Color);
 void CreateColorFormat(color *Color);
 std::string GetUTF8String(CFStringRef Temp);
+bool IsPointInRect(const bound_rect &Rect, const uint32_t &X, const uint32_t &Y);
 
 #endif

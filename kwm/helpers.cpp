@@ -104,3 +104,10 @@ std::string GetUTF8String(CFStringRef Temp)
     return Result;
 }
 
+bool IsPointInRect(const bound_rect &Rect, const uint32_t &X, const uint32_t &Y)
+{
+    return Rect.X <= X && 
+           Rect.Y <= Y &&
+           (Rect.Width  + Rect.X) >= X && 
+           (Rect.Height + Rect.Y) >= Y;
+}
