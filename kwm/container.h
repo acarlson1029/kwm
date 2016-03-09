@@ -1,283 +1,221 @@
-/* Functions that operate on Containers and their Elements */
-#ifndef CONTAINER_H
-#define CONTAINER_H
+/*
+ *  container.h
+ */
+
+#ifndef __CONTAINER__
+#define __CONTAINER__
 
 #include "types.h"
 
-/* Change KWMScreen.SplitRatio (default split for new Containers)
+/*! 
+    @header container.h
+    @brief Functions that operate on node_container objects.
+ */
 
-    Map:
-        Interpreter ~> Container
-
-    Parameters:
-        Value - the new SplitRatio to use ( 0 < Value < 1)
-
-    Global References:
-    [M] KWMScreen.SplitRatio
-
-    Mutations:
-        KWMScreen.SplitRatio is set to Value.
-
-    Return:
-        (void)
-
-    Calling Functions:
-        interpreter::KwmConfigCommand(..)
-    
-    Notes:
-      - Only called by interpreter
-      - Maybe move this out into an interpreter only file
-*/
+/*!
+ *  @brief Update the global KWMScreen.SplitRatio variable
+ *
+ *  @var KWMScreen.SplitRatio
+ *
+ *  todo: Move to top-level configuration.
+ *
+ *  @param Value the new SplitRatio to use when creating node_containers
+ *
+ */
 void ChangeSplitRatio(double Value);
+ // TODO: Move this to a top-level configuration header.
 
-/* Determine whether the Container should split Vertically or Horizontally
+/*!
+    @functiongroup Constructors
+ */
 
-    Map:
-        Boundary ~> Boundary
+/*!
+ *  @brief Create a left split child `node_container`
+ *
+ *  @discussion Uses the parent Container's SplitRatio and Boundary 
+ *  information to create a subcontainer split to the left.
+ *
+ *  @param Offset    The gaps to use when creating the node_container
+ *  @param Container Parent node_container to base the Container on
+ *
+ *  @return pointer to new split sub-container
+ * 
+ *  @see
+ *  RightVerticalContainerSplit()
+ *  UpperHorizontalContainerSplit()
+ *  LowerHorizontalContainerSplit()
+ *
+ *  @note This function calls `new`
+ */
+node_container *LeftVerticalContainerSplit(const container_offset &Offset, const node_container &Container);
 
-    Parameters:
-        Rect - the rectangular dimensions (X, Y, Width, Height)
+/*!
+ *  @brief Create a right split child `node_container`
+ *
+ *  @discussion Uses the parent Container's SplitRatio and Boundary 
+ *  information to create a subcontainer split to the right.
+ *
+ *  @param Offset    The gaps to use when creating the `node_container`
+ *  @param Container Parent `node_container` to base the Container on
+ *
+ *  @return pointer to new split sub-container
+ * 
+ *  @see
+ *  LeftVerticalContainerSplit()
+ *  UpperHorizontalContainerSplit()
+ *  LowerHorizontalContainerSplit()
+ *
+ *  @note This function calls `new`
+ *
+ */
+node_container *RightVerticalContainerSplit(const container_offset &Offset, const node_container &Container);
 
-    Mutations:
-        (none)
+/*!
+ *  @brief Create an upper split child `node_container`
+ *
+ *  @discussion Uses the parent Container's SplitRatio and Boundary 
+ *  information to create a subcontainer split in the upper portion.
+ *
+ *  @param Offset    Gaps to use when creating the `node_container`
+ *  @param Container Parent `node_container` to inherit attributes of
+ *
+ *  @return Pointer to new split sub-container
+ * 
+ *  @see
+ *  LeftVerticalContainerSplit
+ *  RightVerticalContainerSplit
+ *  LowerHorizontalContainerSplit
+ *
+ *  @note This function calls `new`
+ *
+ */
+node_container *UpperHorizontalContainerSplit(const container_offset &Offset, const node_container &Container);
 
-    Return:
-        split_mode - SplitModeVertical or SplitModeHorizontal
+/*!
+ *  @brief Create a lower split child `node_container`
+ *
+ *  @discussion Uses the parent Container's SplitRatio and Boundary 
+ *  information to create a subcontainer split to the left.
+ *
+ *  @param Offset    Gaps to use when creating the `node_container`
+ *  @param Container Parent `node_container` to inherit attributes of
+ *
+ *  @return Pointer to new split sub-container
+ * 
+ *  @see
+ *  LeftVerticalContainerSplit
+ *  RightVerticalContainerSplit
+ *  UpperHorizontalContainerSplit
+ *
+ *  @note This function calls `new`
+ */
+node_container *LowerHorizontalContainerSplit(const container_offset &Offset, const node_container &Container);
 
-    Called Functions::
-        (none)
+/*!
+ *  @brief Create a split subcontainer from the ParentContainer
+ *
+ *  @param Offset          Gaps to use when creating the `node_container`
+ *  @param ParentContainer `node_container` that new container inherits attributes from
+ *  @param ContainerType   how to split the ParentContainer when creating the new Container
+ *
+ *  @var KWMScreen.SplitRatio (global) Default the SplitRatio to (if inherited a value not between 0.0 and 1.0)
+ *
+ *  @return Pointer to new split sub-container
+ *
+ *  @see
+ *  LeftVerticalContainerSplit
+ *  RightVerticalContainerSplit
+ *  UpperHorizontalContainerSplit
+ *  LowerHorizontalContainerSplit
+ */
+node_container *CreateSplitContainer(const container_offset &Offset, const node_container &ParentContainer, const container_type &ContainerType);
 
-    Calling Functions:
-        serialize :: FillDeserializedTree(...)
-        node      :: CreateLeafNodePair(...)
-        container :: CreateNodeContainer(...)
-        container :: SetRootNodeContainer(..., Container)
-    
-    Notes:
-      - Uses the Golden Ratio to determine which split is best.
+/*!
+ *  @brief Create a new `node_container` for a full Space, with no splits.
+ *
+ *  @param Boundary Rectangular boundary that the container fills
+ *
+ *  @var KWMScreen.SpltRatio (global) Default split ratio to use for the Container
+ *
+ *  @return Pointer to new container
+ *
+ *  @note This function calls `new`
+ *
+ */
+node_container *CreateRootContainer(const bound_rect &Boundary);
 
-    TODO: unlink serialize::FillDeserializedTree from this abstraction level
-    TODO: Add in a global configuration for the default optimal split ratio
-*/
-split_mode GetOptimalSplitMode(const bound_rect &Rect);
+/*!
+    @functiongroup Mutators
+ */
 
-
-////////////////////////////////////////////////////////////////////////////////
-// CONSTRUCTORS
-
-/* Create a Split Container from an existing Container
-
-    Map:
-        Container ~> Container
-
-    Parameters:
-       Offset    - the gap offset for the New Container
-       Container - Base Container for the New Container
-
-    Mutations:
-        (none)
-
-    Return:
-        node_container - a new Container based on the provided Container and Offset
-
-    Called Functions:
-        (none)
-
-    Calling Functions:
-        container :: CreateNodeContainer(Offset, ...)
-*/
-node_container LeftVerticalContainerSplit(const container_offset &Offset, const node_container &Container);
-node_container RightVerticalContainerSplit(const container_offset &Offset, const node_container &Container);
-node_container UpperHorizontalContainerSplit(const container_offset &Offset, const node_container &Container);
-node_container LowerHorizontalContainerSplit(const container_offset &Offset, const node_container &Container);
-
-/* Create a Split Child Container from a Parent Container
-
-    Map:
-        Container ~> Container
-
-    Parameters:
-        Offset          - the gap offset of the new Container
-        ParentContainer - the enclosing Container to base the split Container on.
-        ContainerType   - the type of split for the new Container
-
-    Global References:
-        KWMScreen.SplitRatio - get the default split ratio
-
-    Mutations:
-        (none)
-
-    Return:
-        node_container - the new Container that's split from the ParentContainer
-
-    Called Functions:
-        container :: LeftVerticalContainerSplit()
-        container :: RightVerticalContainerSplit()
-        container :: UpperHorizontalContainerSplit()
-        container :: LowerHorizontalContainerSplit()
-        container :: GetOptimalSplitMode()
-
-    Calling Functions:
-        node :: CreateLeafNode()
-        node :: ResizeNodeContainer()
-
-    Notes:
-
-    TODO: Replace KWMScreen.SplitRatio with a KWM configuration value.
-*/
-node_container CreateSplitContainer(const container_offset &Offset, const node_container &ParentContainer, const container_type &ContainerType);
-
-/* Create Container with default values for fullscreen Root Node
-
-    Map:
-        Container ~> Container
-
-    Parameters:
-        Boundary - the full boundary for the Container (i.e. a Space's Boundary)
-
-    Global References:
-        KWMScreen.SplitRatio - for default split ratio
-
-    Mutations:
-i       (none)
-
-    Return:
-        (void)
-
-    Called Functions:
-        container :: GetOptimalSplitMode()
-
-    Calling Functions:
-        display :: ChangePaddingOfDisplay()
-        node    :: ResizeNodeContainer()
-        node    :: CreateRootNode()
-    
-    Notes:
-    
-    TODO: Remove display::ChangePaddingOfDisplay(...) from calling functions
-*/
-node_container CreateRootContainer(const bound_rect &Boundary)
-
-////////////////////////////////////////////////////////////////////////////////
-// MUTATORS
-
-/* Set the SplitRatio of the Container
-
-    Map:
-        Container ~> Container
-
-    Parameters:
-    [M] *Container - the Container whose SplitRatio is to be modified.
-        Ratio - the new SplitRatio (0 < Delta < 1)
-
-    Mutations:
-        Container->SplitRatio = Ratio
-
-    Return:
-        (none)
-
-    Called Functions:
-        (none)
-
-    Calling Functions: // TODO SetContainerSplitRatio()
-
-    Notes:
-      - This function will not fail to modify the SplitRatio if the result
-        is not between 0 and 1, exclusive.
-*/
+/*!
+ *  @brief Set the SplitRatio of the Container
+ *
+ *  @param Container
+ *  @param Ratio     New SplitRatio (between 0.0 and 1.0)
+ *
+ *  @return (mutate) Container->SplitRatio attribute
+ *
+ *  @note The new SplitRatio will only affect Containers created after setting
+ *  this value -- existing Containers will not be affected.
+ *
+ *  @note If Ratio is not between 0.0 and 1.0 (exclusive), the value will not
+ *  be set.
+ */
 void SetContainerSplitRatio(node_container *Container, const double &Ratio);
 
-/* Adjust the SplitRatio of the Container by an amount
-
-    Map:
-        Container ~> Container
-
-    Parameters:
-    [M] *Container - the Container whose SplitRatio is to be modified.
-        Delta - the amount to modify the SplitRatio (0 < Delta < 1)
-
-    Mutations:
-        Container->SplitRatio += Delta
-
-    Return:
-        (none)
-
-    Called Functions:
-        (none)
-
-    Calling Functions:
-        node :: ModifyNodeSplitRatio
-    
-    Notes:
-      - This function will not fail to modify the SplitRatio if the result
-        is not between 0 and 1, exclusive.
-      - Usually the Windows will be updated after the containers are,
-        but do we ever modify the split ratio without updating the containers?
-        Should it happen in one step, or let the calling functions do it?
-      - i.e. call ResizeElementInContainer in this function.
-        -> I'd rather leave it up to a calling function, since we can modify
-           a bunch of containers and then multithreaded resize.
-    
-    TODO: performance testing for ResizeElementInContainer.
-*/
+/*!
+ *  @brief Adjust the SplitRatio of the Container by an amount
+ *
+ *  @param Container (mutate) the Container whose SplitRatio is to be adjusted.
+ *  @param Delta     the amount to modify the SplitRatio (0.0 < Delta < 1.0)
+ *
+ *  @return (mutate) Container->SplitRatio is adjusted by Delta
+ *
+ *  @note The new SplitRatio will only affect Containers created after setting
+ *  this value -- existing Containers will not be affected
+ *  @note This function will fail to modify the SplitRatio if the result is not
+ *  between 0.0 and 1.0 (exclusive).
+ */
 void AdjustContainerSplitRatio(node_container *Container, const double &Delta);
 
-/* Toggle the SplitMode of the Container between SplitModeVertical and SplitModeHorizontal
-
-    Map:
-        Container ~> Container
-
-    Parameters:
-    [M] *Container - the Container to toggle the SplitMode of.
-
-    Mutations:
-        Container->SplitMode = SplitModeVertical OR SplitModeHorizontal
-
-    Return:
-        (void)
-
-    Called Functions:
-        (none)
-
-    Calling Functions:
-        node :: ToggleNodeSplitMode(..)
-    
-    Notes:
-      - This function can FAIL if Container->SplitMode isn't already either
-        SplitModeVertical or SplitModeHorizontal
-      - Need to call ResizeTreeNodes and ApplyNodeContainer on Subtree after 
-        changing the SplitMode to see the effect.
-*/
+/*!
+ *  @brief Toggle the SplitMode of the Container between SplitModeVertical and SplitModeHorizontal
+ *
+ *  @param Container (mutate) modify Container->SplitMode
+ *
+ *  @note The new SplitMode will only affect Containers created after setting
+ *  this value -- existing Containers will not be affected.
+ *  @note This function can fail if Container->SplitMode isn't already either
+ *  SplitModeVertical or SplitModeHorizontal.
+ */
 void ToggleContainerSplitMode(node_container *Container);
 
-/* (DEPRECIATE) Resize the WindowID's Window to fit in the Container.
-    Map:
-        Container ~> Window
+/*!
+ *  @brief Check whether a point is within a Container
+ *
+ *  @param Container Use the Container's Boundary rect as the bounds
+ *  @param X         X position (pixels)
+ *  @param Y         Y position (pixels)
+ *
+ *  @return true if point (X,Y) is within the Container.
+ */
+bool IsPointInContainer(const node_container &Container, const int &X, const int &Y);
 
-    Parameters:
-       WindowID - the WID of the Window to resize.
-       Container - the dimensions to which the Window will be resized.
+/*!
+    @functiongroup Helpers
+ */
 
-    Mutations:
-        (see ResizeWindowToContainerSize)
-
-    Return:
-        (void)
-
-    Called Functions:
-        window     :: GetWindowByID(WindowID)
-        dispatcher :: ResizeWindowToContainerSize(.., Container)
-
-    Calling Functions:
-        node :: ResizeElementInNode(..)
-    
-    Notes:
-      - Breaks abstraction barrier by using the window::GetWindowByID function
-    
-    TODO: Make the Container argument a const ref (unmutated)
-    TODO: Update this function once we switch to Element/Container inside Node
-          -> Probably won't be needed. In Element, get Window and Container.Boundary
-*/
-void ResizeElementInContainer(const int &WindowID, node_container *Container);
+/*!
+ *  @brief Determine the optimal split mode from the dimensions of the rectangle
+ *
+ *  @param Rect The bounding box
+ *
+ *  @return SplitModeVertical or SplitModeHorizontal, depending on aspect ratio
+ *
+ *  @discussion
+ *  @todo Default aspect ratio check is the Golden Ratio, should be configurable.
+ */
+split_mode GetOptimalSplitMode(const bound_rect &Rect);
 
 #endif

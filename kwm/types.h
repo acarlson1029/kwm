@@ -81,6 +81,21 @@ extern "C" int _CGSDefaultConnection(void);
 // return is CGWindowID*, second arg
 extern "C" AXError _AXUIElementGetWindow(AXUIElementRef, int *);
 
+/* TODO Refactor the enum naming conventions;
+* Enum names should StartUppercaseNoUnderscore
+*  -> hold off since everything follows the reverse pattern
+* Be descriptive toward the place its going to be used.
+* Enum values should prefix with k.
+* Example:
+*  enum ContainerSplitMode
+*  {
+*      kContainerSplitModeOptimal=0,
+*      kContainerSplitModeVertical,
+*      kContainerSplitModeHorizontal,
+*      kContainerSplitModeUnset,
+*  };
+*/
+
 enum focus_option
 {
     FocusModeAutofocus,
@@ -183,10 +198,24 @@ struct node_container
     double SplitRatio;
 };
 
+struct window_stack
+{
+    // TODO: Modify Overlay to print Stack IDs on keypress,
+    //       so you can switch between them like tmux panes
+    uint32_t ID;                        // Unique ID in Tree; for Binary Search and User Switching
+    node_container Container;
+    std::deque<window_info*> Windows;   // TODO debating double-ended queue or stack implementation..
+    window_info* CurrentWindow;         // The top window in the stack
+    bool Floating;                      // Windows can be moved within the stack's boundaries, but still contained.
+    bool FloatToggle;                   // Float the STACK itself (i.e. move a stack of windows)
+    bool ZoomToggle;                    // All windows in the stack are zoomed.
+    // TODO Additional config settings here
+    // i.e. cascade amount
+};
+
 struct tree_node
 {
-    int WindowID;
-    node_container Container;
+    window_stack *Element; // TODO Can make this a template type, update node.cc and tree.cc
     tree_node *Parent;
     tree_node *LeftChild;
     tree_node *RightChild;
