@@ -5,7 +5,7 @@
 // GLOBAL VARIABLES
 extern kwm_screen KWMScreen; // for KWMScreen.SplitRatio config setting
 // TODO Move out of here to some configuration file
-void ChangeSplitRatio(double Value)
+void ChangeSplitRatio(const double &Value)
 {
     if(Value > 0.0 && Value < 1.0)
     {
@@ -100,14 +100,14 @@ node_container *CreateRootContainer(const bound_rect &Boundary)
     Container->Type = ContainerRoot;
     Container->Boundary = Boundary;
     Container->SplitMode = GetOptimalSplitMode(Boundary);
-    Container->SplitRatio = KWMScreen.SplitRatio; // TODO update this global
+    Container->SplitRatio = KWMScreen.SplitRatio; // TODO: update this global
     return Container;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // MUTATORS
 //   Note - can "set" attrubtes of a Container explicitly
-//          "set" functions will have validity checking
+//          These "set" functions will have validity checking
 
 void SetContainerSplitRatio(node_container *Container, const double &Ratio)
 {

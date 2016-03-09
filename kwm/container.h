@@ -22,7 +22,7 @@
  *  @param Value the new SplitRatio to use when creating node_containers
  *
  */
-void ChangeSplitRatio(double Value);
+void ChangeSplitRatio(const double &Value);
  // TODO: Move this to a top-level configuration header.
 
 /*!
@@ -190,6 +190,10 @@ void AdjustContainerSplitRatio(node_container *Container, const double &Delta);
  *  SplitModeVertical or SplitModeHorizontal.
  */
 void ToggleContainerSplitMode(node_container *Container);
+
+/*!
+    @functiongroup Queries
+ */
 
 /*!
  *  @brief Check whether a point is within a Container
