@@ -1,205 +1,181 @@
 #include "node.h"
-#include "container.h" // nodes have containers
 
-extern kwm_screen KWMScreen;
-extern kwm_tiling KWMTiling;
-
-tree_node *CreateRootNode(const bound_rect &SpaceBoundary)
+////////////////////////////////////////////////////////////////////////////////
+// CONSTRUCTORS
+tree_node *CreateRootNode()
 {
-    tree_node Clear = {0};
-    tree_node *RootNode = (tree_node*) malloc(sizeof(tree_node));
-    *RootNode = Clear;
+    tree_node *RootNode = new tree_node;
 
-    RootNode->WindowID = -1;
+    RootNode->Element = NULL;
     RootNode->Parent = NULL;
     RootNode->LeftChild = NULL;
     RootNode->RightChild = NULL;
-    SetRootNodeContainer(SpaceBoundary, &RootNode->Container);
 
     return RootNode;
 }
 
-tree_node *CreateLeafNode(const container_offset &Offset, tree_node *Parent, int WindowID, const container_type &ContainerType)
+tree_node *CreateLeafNode(const tree_node &Parent)
 {
     Assert(Parent, "CreateLeafNode()")
 
-    tree_node Clear = {0};
-    // TODO why malloc in C++?
-    tree_node *Leaf = (tree_node*) malloc(sizeof(tree_node));
-    *Leaf = Clear;
-
-    Leaf->Parent = Parent;
-    Leaf->WindowID = WindowID;
-
-    Leaf->Container = CreateNodeContainer(Offset, Parent->Container, ContainerType);
-
-    Leaf->LeftChild = NULL;
-    Leaf->RightChild = NULL;
+    tree_node *Leaf = CreateRootNode();
+    *Leaf->Parent = Parent;
 
     return Leaf;
 }
 
-void CreateLeafNodePair(const container_offset &Offset, tree_node *Parent, int FirstWindowID, int SecondWindowID, const split_mode &SplitMode)
+////////////////////////////////////////////////////////////////////////////////
+// DESTRUCTORS
+void DestroyNode(tree_node *Node)
 {
-    Assert(Parent, "CreateLeafNodePair()")
-
-    Parent->WindowID = -1;
-    // TODO Can call container functions for this?
-    Parent->Container.SplitMode = SplitMode == SplitModeOptimal ? GetOptimalSplitMode(Parent->Container) : SplitMode;
-    Parent->Container.SplitRatio = KWMScreen.SplitRatio;
-
-    int LeftWindowID = KWMTiling.SpawnAsLeftChild ? SecondWindowID : FirstWindowID;
-    int RightWindowID = KWMTiling.SpawnAsLeftChild ? FirstWindowID : SecondWindowID;
-
-    switch(Parent->Container.SplitMode)
-    {
-        case SplitModeVertical:
-        {
-            Parent->LeftChild = CreateLeafNode(Offset, Parent, LeftWindowID, ContainerLeft);
-            Parent->RightChild = CreateLeafNode(Offset, Parent, RightWindowID, ContainerRight);
-        } break;
-        case SplitModeHorizontal:
-        {
-            Parent->LeftChild = CreateLeafNode(Offset, Parent, LeftWindowID, ContainerUpper);
-            Parent->RightChild = CreateLeafNode(Offset, Parent, RightWindowID, ContainerLower);
-        } break;
-        default:
-        {
-            DEBUG("CreateLeafNodePair() Invalid SplitMode given: " << SplitMode)
-            DEBUG("CreateLeafNodePair() Setting Parent to NULL")
-            Parent->Parent = NULL;
-            Parent->LeftChild = NULL;
-            Parent->RightChild = NULL;
-            Parent = NULL;
-        } break;
-    }
+    if(Node)
+        delete Node;
 }
 
-bool IsLeafNode(tree_node *Node)
+void RemoveNodeFromTree(tree_node *Leaf)
 {
-    return Node->LeftChild == NULL && Node->RightChild == NULL ? true : false;
-}
-
-bool IsLeftChild(tree_node *Node)
-{
-    if (Node && Node->Parent)
+    if(!Leaf || !IsLeafNode(*Leaf))
     {
-        return Node->Parent->LeftChild == Node;
+        return;
     }
 
-    return false;
+    // Case 1: Leaf is ROOT
+    // Note: don't check against param RootNode because it can just be a subtree root
+    if(IsRootNode(*Leaf))
+    {
+        // doesn't make sense to remove this node
+        DEBUG("RemoveNodeFromTree() Tried to remove Tree Root - did you mean to Destroy Tree?")
+        return; 
+    } 
+
+
+    tree_node *Parent = Leaf->Parent;
+    tree_node *Sibling = IsLeftChild(*Leaf) ? Parent->RightChild : Parent->LeftChild;
+
+    // TODO is there a better (memory management) way of doing this copy?
+    Parent->Element = Sibling->Element;
+    Parent->LeftChild = Sibling->LeftChild;
+    Parent->RightChild = Sibling->RightChild;
+    DestroyNode(Leaf);
+    DestroyNode(Sibling);
+
+    return;
 }
 
-bool IsLeftLeaf(tree_node *Node)
+////////////////////////////////////////////////////////////////////////////////
+// QUERIES
+bool IsLeafNode(const tree_node &Node)
+{
+    return (!Node.LeftChild) && (!Node.RightChild);
+}
+
+bool IsLeftChild(const tree_node &Node)
+{
+    if (Node.Parent)
+        return Node.Parent->LeftChild == &Node;
+    else
+        return false;
+}
+
+bool IsLeftLeaf(const tree_node &Node)
 {
     return IsLeftChild(Node) && IsLeafNode(Node);
 }
 
-bool IsRightChild(tree_node *Node)
+bool IsRightChild(const tree_node &Node)
 {
-    if (Node && Node->Parent)
-    {
-        return Node->Parent->RightChild == Node;
-    }
-
-    return false;
+    if (Node.Parent)
+        return Node.Parent->RightChild == &Node;
+    else
+        return false;
 }
 
-bool IsRightLeaf(tree_node *Node)
+bool IsRightLeaf(const tree_node &Node)
 {
     return IsRightChild(Node) && IsLeafNode(Node);
 }
 
-void SwapNodeWindowIDs(tree_node *A, tree_node *B)
+bool IsRootNode(const tree_node &Node)
 {
-    if(A && B)
-    {
-        DEBUG("SwapNodeWindowIDs() " << A->WindowID << " with " << B->WindowID)
-        int TempWindowID = A->WindowID;
-        A->WindowID = B->WindowID;
-        B->WindowID = TempWindowID;
-        ResizeElementInNode(A);
-        ResizeElementInNode(B);
-    }
+    return !Node.Parent;
 }
 
-// Note - in Monocle Mode, every Node is a "Root" (i.e. no parent),so
-// every node is resized to the RootNodeContainer.
-// TODO  Does this need an "OptimalSplitMode" boolean argument?
-void ResizeNodeContainer(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Node)
+////////////////////////////////////////////////////////////////////////////////
+// GET
+tree_node *GetNodeIfLeaf(const tree_node &Node)
 {
-    Assert(Node, "ResizeNodeContainer()")
-
-    // BSP Root Node or Monocle Node
-    if (Node && !Node->Parent)
-        SetRootNodeContainer(SpaceBoundary, &Node->Container);
+    tree_node *Leaf;
+    *Leaf = Node;
+    if(IsLeafNode(*Leaf))
+        return Leaf;
     else
-        Node->Container = CreateNodeContainer(Offset, Node->Parent->Container, Node->Parent->Container.Type);
+        return NULL;
 }
 
-bool ModifyNodeSplitRatio(tree_node *Node, const double &Offset)
+tree_node *GetFirstLeafNode(const tree_node &Node)
 {
-    if(!Node)
-        return false;
+    // TODO: Can probably implement this as an in-order search
+    tree_node *First;
+    *First = Node;
+    while(First && !IsLeafNode(*First))
+        First = First->LeftChild;
 
-    return ModifyContainerSplitRatio(&Node->Container, Offset);
+    return First;
 }
 
-void ToggleNodeSplitMode(tree_node *Node)
+tree_node *GetLastLeafNode(const tree_node &Node)
 {
-    if(Node)
+    tree_node *Last;
+    *Last = Node;
+    while(Last && !IsLeafNode(*Last))
+        Last = Last->RightChild;
+
+    return Last;
+}
+
+tree_node *GetNearestLeafNodeToTheLeft(const tree_node &Node)
+{
+    if(Node.Parent)
     {
-        ToggleContainerSplitMode(&Node->Container);
+        if(IsLeftChild(Node))
+            return GetNearestLeafNodeToTheLeft(*Node.Parent);
+        
+        tree_node *Left = Node.Parent->LeftChild;
+        if(IsLeafNode(*Left))
+            return Left;
+
+        return GetLastLeafNode(*Left);
     }
+
+    return NULL;
 }
 
-void SetElementInNode(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Node, const int &WindowID)
+tree_node *GetNearestLeafNodeToTheRight(const tree_node &Node)
 {
-    if(Node)
+    if(Node.Parent)
     {
-        Node->WindowID = WindowID;
-        ResizeNodeContainer(SpaceBoundary, Offset, Node);
+        if(IsRightChild(Node))
+            return GetNearestLeafNodeToTheRight(*Node.Parent);
+
+        tree_node *Right = Node.Parent->RightChild;
+        if(IsLeafNode(*Right))
+            return Right;
+
+        return GetFirstLeafNode(*Right);
     }
+
+    return NULL;
 }
 
-void ClearElementInNode(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Node)
+tree_node *GetNearestLeafNeighbour(const tree_node &Node)
 {
-    if(Node)
-    {
-        Node->WindowID = -1;
-        ResizeNodeContainer(SpaceBoundary, Offset, Node);
-    }
+	if(IsLeafNode(Node))
+	{
+		return IsLeftLeaf(Node) ? GetNearestLeafNodeToTheRight(Node) : GetNearestLeafNodeToTheLeft(Node);
+	}
+
+	return NULL;
 }
 
-void ResizeElementInNode(tree_node *Node)
-{
-    if(Node)
-    {
-        ResizeElementInContainer(Node->WindowID, &Node->Container);
-    }
-}
-
-void CreateNodeContainerPair(const container_offset &Offset, tree_node *Parent, const split_mode &SplitMode)
-{
-    Assert(Parent, "CreateNodeContainerPair() Parent")
-
-    switch(SplitMode)
-    {
-        case SplitModeVertical:
-        {
-            Parent->LeftChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerLeft);
-            Parent->RightChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerRight);
-        } break;
-        case SplitModeHorizontal:
-        {
-            Parent->LeftChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerUpper);
-            Parent->RightChild->Container = CreateNodeContainer(Offset, Parent->Container, ContainerLower);
-        } break;
-        default:
-        {
-            DEBUG("CreateNodeContainerPair() Invalid SplitMode given: " << SplitMode)
-        } break;
-
-    }
-}
-
+////////////////////////////////////////////////////////////////////////////////
+// MUTATORS

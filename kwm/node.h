@@ -1,542 +1,330 @@
-/* Functions that operate on Nodes and Containers */
-
-#ifndef NODE_H
-#define NODE_H
+#ifndef __NODE__
+#define __NODE__
 
 #include "types.h"
 
-/* Create a new Leaf Node derived from the Parent
+/*! @header node.h
+    @brief Functions that operate on Tree Nodes
 
-    Map:
-        Node ~> Node
-
-    Parameters:
-        Offset        - the space padding Offset
-        Parent        - the Parent Node from which the Leaf is derived
-        WindowID      - the Element stored in the Node
-        ContainerType - the type of container split:
-                          * LeftVerticalContainerSplit
-                          * RightVerticalContainerSplit
-                          * UpperHorizontalContainerSplit
-                          * LowerHorizontalContainerSplit
-        
-    Global References:
-        (none)
-
-    Mutations:
-        (none)
-
-    Return:
-        tree_node - the Leaf Node that was derived from the Parent Node.
-
-    Called Functions:
-        container :: CreateNodeContainer()
-
-    Calling Functions:
-        node :: CreateLeafNodePair()
-        serialize :: DeserializeChildNode()
-    
-    Notes:
-
-    TODO: Refactor calling function DeserializeChildNode()
-*/
-tree_node *CreateLeafNode(const container_offset &Offset, tree_node *Parent, int WindowID, const container_type &ContainerType);
-
-/* Create an empty RootNode for the Tree
-
-    Map:
-        Node ~> Node
-
-    Parameters:
-        SpaceBoundary - the boundary rect of the Space on which to create the Tree's RootNode
-
-    Global References:
-        (none)
-
-    Mutations:
-        (none)
-
-    Return:
-        tree_node - the created RootNode for the Tree
-
-    Called Functions:
-        SetRootNodeContainer()
-
-    Calling Functions:
-        serialize :: DeserializeNodeTree()
-        tree      :: CreateTreeFromWindowIDList()
-        tree      :: CreateMonocleTree()
-        tree      :: AddElementToMonocleTree()
-    
-    Notes:
-
-    TODO: Refactor DeserializeNodeTree to abstract away.
-*/
-tree_node *CreateRootNode(const bound_rect &SpaceBoundary);
-
-/* Create new Children Leaf Nodes from Parent Node
-
-    Map:
-        Node ~> Node
-
-    Parameters:
-        Offset         - the Space's Offset for container padding
-    [M] Parent         - the Parent Node for creating and storing the Children
-        FirstWindowID  - the WindowID of the first Element 
-        SecondWindowID - the WindowID of the second Element
-        SplitMode      - how to split the Parent's Container when creating Children:
-                           * SplitModeOptimal (uses golden ratio)
-                           * SplitModeVertical
-                           * SplitModeHorizontal
-        
-    Global References:
-        KWMScreen.SplitRatio       - default SplitRatio
-        KWMTiling.SpawnAsLeftChild - preference for new window location.
-
-    Mutations:
-        Parent - invalidate Element, update SplitMode, reset SplitRatio, and store created Children
-
-    Return:
-        (void)
-
-    Called Functions:
-        CreateLeafNode()
-
-    Calling Functions:
-        serialize::CreateLeafNodePair()
-        tree::CreateBSPTree()
-        tree::AddElementToBSPTree()
-    
-    Notes:
-*/
-void CreateLeafNodePair(const container_offset &Offset, tree_node *Parent, int FirstWindowID, int SecondWindowID, const split_mode &SplitMode);
-
-/* Set the Element in the Node's Container
-
-    Map:
-        Node ~> Element
-
-    Parameters:
-        SpaceBoundary - the boundary rectangle of the Space of the Tree of the Node
-        Offset        - the Space padding offset/gaps
-    [M] Node          - the Node of which to set the Element
-        WindowID      - the Element to set in the Node
-        
-    Global References:
-        (none)
-
-    Mutations:
-        Node->Container.WindowID is set.
-        (see ResizeNodeContainer)
-
-    Return:
-        (void)
-
-    Called Functions:
-    [M] node :: ResizeNodeContainer()
-
-    Calling Functions:
-        tree :: ToggleElementInTree()
-        tree :: ToggleElementInRoot()
-    
-    Notes:
-*/
-void SetElementInNode(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Node, const int &WindowID);
-
-/* Clear the Element in the Node's Container
- 
-     Map:
-         Node ~> Element
-     
-     Parameters:
-         SpaceBoundary - the boundary rectangle of the Space of the Tree of the Node
-         Offset        - the Space padding offset/gaps
-         [M] Node      - the Node of which to set the Element
-     
-     Global References:
-        (none)
-     
-     Mutations:
-        Node->Container.WindowID is cleared.
-        (see ResizeNodeContainer)
-     
-     Return:
-        (void)
-     
-     Called Functions:
-        [M] node :: ResizeNodeContainer()
-     
-     Calling Functions:
-        tree :: ToggleElementInTree()
-        tree :: ToggleElementInRoot()
-     
-     Notes:
+    @note
+    These functions have no concept of what Element is stored in the Node.
  */
-void ClearElementInNode(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Node);
 
-/* Resize the Node's Container with new constraints
-
-    Map:
-        Node ~> Container
-
-    Parameters:
-        SpaceBoundary - the boundary rectangle of the Space of the Tree of the Node
-        Offset        - the Space padding offset/gaps
-    [M] Node          - the Node for which the Container is updated
-        
-    Global References:
-        (none)
-
-    Mutations:
-        Node->Container is resized
-
-    Return:
-        (void)
-
-    Called Functions:
-        container::SetRootNodeContainer()
-        container::CreateNodeContainer()
-
-    Calling Functions:
-        tree::ResizeTreeNodes
-        node::SetElementInNode()
-        node::ClearElementInNode()
-    
-    Notes:
-
-    TODO: Add a Container function to resize the container explicitly without going over the abstraction barrier.
-*/
-void ResizeNodeContainer(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Node);
-
-/* Whether the given Node is a Leaf (has no children)
-    
-    Map:
-        Node ~> Node
- 
-    Parameters:
-        Node - the Node in question
-    
-    Global References:
-        (none)
- 
-    Mutations:
-        (none)
- 
-    Return:
-        bool - true  : is a leaf
-               false : is not a leaf
- 
-    Called Functions:
-        (none)
- 
-    Calling Functions:
-        AddElementToBSPTree
-        AddWindowToBSPTree
-        AddWindowToTreeOfUnfocusedMonitor
-        CreateBSPTree
-        FillDeserializedTree
-        GetFirstLeafNode
-        GetLastLeafNode
-        GetNearestLeafNeighbor
-        GetNearestNodeToTheLeft
-        GetNearestNodeToTheRight
-        IsLeftLeaf
-        IsRightLeaf
-        ModifySubtreeSplitRatioFromWindow
-        RotateTree
-        SaveBSPTreeToFile
-        SerializeParentNode
-        ToggleElementInRoot
-        ToggleElementInTree
-        ToggleSubtreeSplitMode
-*/
-bool IsLeafNode(tree_node *Node);
-
-/* Whether the Node is on its Parent's Left
- 
-    Map:
-        Node ~> Node
- 
-    Parameters:
-        Node - the Node in question
- 
-    Global References:
-        (none)
- 
-    Mutations:
-        (none)
- 
-    Return:
-        bool - true  : is left of parent
-               false : is not left of parent
-               note: false does not imply IsRightChild (may be root)
- 
-    Called Functions:
-        (none)
- 
-    Calling Functions:
-        node :: IsLeftLeaf()
- 
-    Notes:
-*/
-bool IsLeftChild(tree_node *Node);
-
-/* Whether the Node is on its Parent's Left
- 
-    Map:
-        Node ~> Node
- 
-    Parameters:
-        Node - the Node in question
- 
-    Global References:
-         (none)
- 
-     Mutations:
-         (none)
- 
-     Return:
-         bool - true  : is right of parent
-                false : is not right of parent
-         note: false does not imply IsLeftChild (may be root)
- 
-     Called Functions:
-         (none)
- 
-     Calling Functions:
-         node :: IsRightLeaf()
- 
-    Notes:
+/*! @functiongroup Constructors
  */
-bool IsRightChild(tree_node *Node);
 
-/* Is Node a Leaf on Parent's Left
+/*! @brief Create an empty RootNode for the Tree
+
+    @return `tree_node` Pointer to the created RootNode for the Tree
  
-    Map:
-        Node ~> Node
- 
-    Parameters:
-        Node - the Node in question
- 
-    Global References:
-        (none)
- 
-    Mutations:
-        (none)
- 
-    Return:
-        bool - true  : is left node and is leaf
-               false : not (left node and is leaf)
- 
-    Called Functions:
-        node :: IsLeftChild()
-        node :: IsLeafNode()
- 
-    Calling Functions:
-        serialize :: CreateDeserializedNodeContainer
+    @discussion
+    An "empty" Node is defined as an object whose Parent, LeftChild, RightChild,
+    and Element all point to NULL.
+
+    @note
+    This function calls `new`
+
+    @see DestroyNode()
 */
-bool IsLeftLeaf(tree_node *Node);
+tree_node *CreateRootNode();
 
-/* Is Node a Leaf on Parent's Left
+/*! @brief Create a new Leaf Node derived from its Parent.
  
-     Map:
-         Node ~> Node
+    @param Parent The Node to which the Leaf will point
  
-     Parameters:
-         Node - the Node in question
- 
-     Global References:
-         (none)
- 
-     Mutations:
-         (none)
- 
-     Return:
-         bool - true  : is right node and is leaf
-                false : not (right node and is leaf)
- 
-     Called Functions:
-         node :: IsRightChild()
-         node :: IsLeafNode()
- 
-     Calling Functions:
-         UNSUED
+    @return `tree_node` pointer to the created LeafNode
+
+    @discussion
+    The newly created Node will have its Parent attribute already set.
+
+    @note
+    This function calls CreateRootNode(), which calls `new`.
+
+    @see CreateRootNode()
+    @see DestroyNode()
+ */ 
+tree_node *CreateLeafNode(const tree_node &Parent);
+
+/*! @functiongroup Destructors
  */
-bool IsRightLeaf(tree_node *Node);
 
-/* (NYI) Is Node the RootNode of a Tree
- 
-     Map:
-         Node ~> Node
- 
-     Parameters:
-         Node - the Node in question
- 
-     Global References:
-         (none)
- 
-     Mutations:
-         (none)
- 
-     Return:
-         bool - true  : is root node
-                false : is not root node
- 
-    Called Functions:
-        TODO
- 
-    Calling Functions:
-        UNSUED
+/*! @brief Destroy a Node, freeing its memory from the heap.
+
+    @param Node (mutate) Destroy the Node, freeing its memory.
+
+    @warning This is an in-place deletion. The Tree will not be mutated to 
+    reflect the absence of this Node.
+
+    @pre Readjust the Tree containing the Node first -- its Parents and
+    Children will be left orphaned and the Tree broken otherwise.
+
+    @discussion
+    If you mean to remove a Node from the Tree data structure, use 
+    RemoveNodeFromTree() instead.
+
+    @note
+    This function calls `delete`
+
+    @see RemoveNodeFromTree()
+    @see CreateRootNode()
  */
-bool IsRootNode(tree_node *Node);
+void DestroyNode(tree_node *Node);
 
-/* Swap the Elements in two Nodes and resize their Elements to fit their Containers
+/*! @brief Remove a Node from the Tree
 
-    Map:
-        Node ~> Container/Element
+    @param Leaf (mutate) The Leaf to be removed from the Tree,
+    and object deleted.
 
-    Parameters:
-    [M] A - first Node
-    [M] B - second Node
+    @warning This function will do nothing if the parameter is either:
+     - NULL
+     - not a Leaf Node
+     - the Root Node of the the Tree
 
-    Global References:
-        (none)
+    @discussion
+    Removal of the Leaf will rebalance the existing Tree structure to accomodate
+    the missing Node and maintain the structural rule that each Parent have
+    exactly two Children.
+    The Leaf's Sibling Node is copied into their Parent Node, and both Children
+    are destroyed.
 
-    Mutations:
-        A->WindowID set to B->WindowID
-        A->Container resized
-        B->WindowID set to A->WindowID
-        B->Container resized
+    @note
+    This function calls DestroyNode(), which calls `delete`
 
-    Return:
-        (void)
+    @see DestroyNode()
+ */
+void RemoveNodeFromTree(tree_node *Leaf);
 
-    Called Functions:
-        node :: ResizeElementInNode()
+/*! @functiongroup Queries
+    @warning These queries operate on const references -- check for NULL pointers
+    before calling them.
+ */
 
-    Calling Functions:
-        dispatcher :: SwapFocusedWindowDirected()
-        dispatcher :: SwapFocusedWindowWithMarked()
-        dispatcher :: SwapFocusedWindowWithNearest()
-    
-    Notes:
+/*! @brief Test whether the Node is a Leaf (has no Children)
 
-    TODO: Add abstraction level between the windowref functions
-*/
-void SwapNodeWindowIDs(tree_node *A, tree_node *B);
+    @param Node
+    @return
 
-/* Change the SplitRatio of the Node's Container
+    @note
+    A Node can be a RootNode and a LeafNode.
+ */
+bool IsLeafNode(const tree_node &Node);
 
-    Map:
-        Node ~> Container
+/*! @brief Test whether the Node is the LeftChild of its Parent
 
-    Parameters:
-    [M] Node - the Node to modify
-        Offset - the amount to change the SplitRatio (0 < Offset < 1)
-        
-    Global References:
-        (none)
+    @param Node
+    @return
 
-    Mutations:
-        (see ModifyContainerSplitRatio)
+    @note
+    This applies to non-Leaf Nodes as well
+    @note
+    Nodes without a Parent (i.e. Root Node) will return `false`
 
-    Return:
-        bool - true  : SplitRatio changed successfully
-               false : SplitRatio unchanged (likely invalid arg)
+    @warning `false` does NOT imply IsRightChild(Node)
+    Ex: A RootNode will be neither a LeftChild or RightChild
 
-    Called Functions:
-        container :: ModifyContainerSplitRatio()
+    @see IsRightChild()
+ */
+bool IsLeftChild(const tree_node &Node);
 
-    Calling Functions:
-        tree :: ModifySubtreeSplitRatio()
-    
-    Notes:
-*/
-bool ModifyNodeSplitRatio(tree_node *Node, const double &Offset);
+/*! @brief Test whether the Node is the RightChild of its Parent
 
-/* Change the SplitMode of the Node's Container
+    @param Node
+    @return
 
-    Map:
-        Node ~> Container
+    @note
+    This applies to non-Leaf Nodes as well
+    @note
+    Nodes without a Parent (i.e. Root Node) will return `false`
 
-    Parameters:
-    [M] Node - the Node whose Container is to be changed
-        
-    Global References:
-        (none)
+    @warning `false` does NOT imply IsLeftChild(Node)
+    Ex: A RootNode will be neither a LeftChild or RightChild
 
-    Mutations:
-        (see ToggleContainerSplitMode)
+    @see IsLeftChild()
+ */
+bool IsRightChild(const tree_node &Node);
 
-    Return:
-        (void)
+/*! @brief Test whether the Node is the Left Leaf of its Parent
 
-    Called Functions:
-        container :: ToggleContainerSplitMode()
+    @param Node
+    @return IsLeafNode(None) && IsLeftChild(Node)
 
-    Calling Functions:
-        tree :: ToggleSubtreeSplitMode()
-    
-    Notes:
-*/
-void ToggleNodeSplitMode(tree_node *Node);
+    @note
+    Nodes without a Parent (i.e. Root Node) will return `false`
 
-/* Resize the Element in the Node
+    @warning `false` does NOT imply IsLeftChild() or IsRightChild() or IsRightLeaf()
+    Ex: A RootNode will be none of these things.
 
-    Map:
-        Node ~> Container
+    @see
+    IsLeafNode()
+    IsLeftChild()
+    IsRightChild()
+    IsRightLeaf()
+ */
+bool IsLeftLeaf(const tree_node &Node);
 
-    Parameters:
-    [M] Node - the Node whose Element is to be resized
-        
-    Global References:
-        (none)
+/*! @brief Test whether the Node is the Right Leaf of its Parent
 
-    Mutations:
-        (see ResizeElementInContainer)
+    @param Node
+    @return IsLeafNode(None) && IsRightChild(Node)
 
-    Return:
-        (void)
+    @note
+    Nodes without a Parent (i.e. Root Node) will return `false`
 
-    Called Functions:
-        container :: ResizeElementInContainer
+    @warning `false` does NOT imply IsRightChild(), IsLeftChild(), or IsLeaf()
+    Ex: A RootNode will be none of these things.
 
-    Calling Functions:
-        tree::ApplyNodeContainer()
-        node::SwapNodeWindowIDs()
-        windowtree::ResizeElementInTree()
-    
-    Notes:
-*/
-void ResizeElementInNode(tree_node *Node);
+    @see
+    IsLeafNode()
+    IsLeftLeaf()
+    IsLeftChild()
+    IsRightChild()
+ */
+bool IsRightLeaf(const tree_node &Node);
 
-/* Create Split Containers for each Child of Parent, based on Parent's Container
+/*! @brief Test whether the Node is the RootNode of a Tree
 
-    Map:
-        Node ~> Container
+    @param Node
+    @return `true` if Node has no Parent
 
-    Parameters:
-        Offset - the offset for the new Container
-    [M] *Parent - the Parent Node for which the Containers are being created.
-        SplitMode - SplitModeVertical: Create Left/Right Containers
-                    SplitModeHorizontal: Create Upper/Lower Containers
+    @warning `false` does NOT imply IsRightChild(), IsLeftChild(), or IsLeaf()
 
-    Mutations:
-        *Parent->LeftChild->Container  <- new node_container
-        *Parent->RightChild->Container <- new node container
+    @see
+    IsLeafNode()
+    IsLeftChild()
+    IsRightChild()
+ */
+bool IsRootNode(const tree_node &Node);
 
-    Return:
-        (void)
+/*! @functiongroup Get Node
+    @warning These functions operate on const references -- check for NULL pointers
+    before calling them.
+    @todo These functions currently return Pointers to **COPIES** of the Node.
+ */
 
-    Called Functions:
-        container :: CreateNodeContainer()
+/*! @brief Get the Node if it is a Leaf.
 
-    Calling Functions:
-        FIXME: REMOVE IF UNUSED
-    
-    Notes:
-      - Not being called anywhere??
-*/
-void CreateNodeContainerPair(const container_offset &Offset, tree_node *Parent, const split_mode &SplitMode);
+    @param Node
+    @return `tree_node` Pointer to the returned Node, or NULL
+
+    @note
+    This function will return a NULL Pointer if the specified matching 
+    Node was not found.
+
+    @see IsLeafNode()
+ */
+tree_node *GetNodeIfLeaf(const tree_node &Node);
+
+/*! @brief Get the first Leaf Node in the subtree starting at Node
+ 
+    @param Node
+    @return `tree_node` Pointer to the returned Node, or NULL
+
+    @discussion
+    The "First" Leaf Node is defined as the left-most Leaf node regardless of
+    the level of the Tree it's found on.
+
+    @note
+    Checks the Node parameter itself
+    @note
+    This function will return a NULL Pointer if the specified matching
+    Node was not found, though it should never do this.
+
+    @see IsLeafNode()
+ */
+tree_node *GetFirstLeafNode(const tree_node &Node);
+
+/*! @brief Get the last Leaf Node in the subtree starting at Node
+ 
+    @param Node
+    @return `tree_node` Pointer to the returned Node, or NULL
+
+    @discussion
+    The "Last" Leaf Node is defined as the right-most Leaf node regardless of
+    the level of the Tree it's found on.
+
+    @note
+    Checks the Node parameter itself
+    @note
+    This function will return a NULL Pointer if the specified matching
+    Node was not found, though it should never do this.
+
+    @see IsLeafNode()
+ */
+tree_node *GetLastLeafNode(const tree_node &Node);
+
+/*! @brief Get the Leaf Node to the left of Node
+ 
+    @param Node
+    @return `tree_node` Pointer to the returned Node, or NULL
+
+    @discussion
+    The "Left" Leaf Node is defined as the next Leaf Node to the Left of Node, 
+    regardless of the level in the Tree it's found on.
+    If Node is a RightChild, get the right-most Leaf of its Sibling (i.e. Node->Parent->LeftChild)
+    If Node is a LeftChild, walk up the Tree and get the nearest Left Node of its Parent.
+
+    @note
+    This function recursively calls itself.
+    @note
+    This function will return a NULL Pointer if the specified matching
+    Node was not found.
+    Ex: In the following case, there is no left Leaf Node
+
+    @code GetNearestLeafNodeToTheLeft(GetFirstLeafNode(Root))
+
+    @see IsLeafNode()
+    @see GetLastLeafNode()
+ */
+tree_node *GetNearestLeafNodeToTheLeft(const tree_node &Node);
+
+/*! @brief Get the Leaf Node to the right of Node
+ 
+    @param Node
+    @return `tree_node` Pointer to the returned Node, or NULL
+
+    @discussion
+    The "Right" Leaf Node is defined as the next Leaf Node to the Right of Node, 
+    regardless of the level in the Tree it's found on.
+    If Node is a LeftChild, get the left-most Leaf of its Sibling (i.e. Node->Parent->RightChild)
+    If Node is a RightChild, walk up the Tree and get the nearest Right Node of its Parent.
+
+    @note
+    This function recursively calls itself.
+    @note
+    This function will return a NULL Pointer if the specified matching
+    Node was not found.
+    Ex: In the following case, there is no right Leaf Node
+
+    @code GetNearestLeafNodeToTheLeft(GetLastLeafNode(Root))
+
+    @see IsLeafNode()
+    @see GetFirstLeafNode()
+ */
+tree_node *GetNearestLeafNodeToTheRight(const tree_node &Node);
+
+/*! @brief Get the closest Leaf Node from Node in the Tree 
+ 
+    @param Node The Leaf Node of which the neighbor is to be found
+    @return `tree_node` Pointer to the returned Node, or NULL
+
+    @discussion
+    If the Node is not a Leaf Node, return NULL.
+    If the Node is a Left Leaf Node, return the nearest Right Leaf Node.
+    If the Node is a Right Leaf Node, return the nearest Left Leaf Node.
+
+    @note
+    This function will return a NULL Pointer if the specified matching
+    Node was not found, or Node is not a Leaf
+
+    @see
+    IsLeafNode()
+    IsLeftLeaf()
+    GetNearestLeafNodeToTheRight()
+    GetNearestLeafNodeToTheLeft()
+ */
+tree_node *GetNearestLeafNeighbour(const tree_node &Node);
+
+/*! @functiongroup Mutators
+ */
 
 #endif
