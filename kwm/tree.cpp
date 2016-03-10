@@ -25,7 +25,6 @@ tree_node *CreateTreeFromElements(const std::vector<T*> &Elements)
 ////////////////////////////////////////////////////////////////////////////////
 // DESTRUCTORS
 //
-template <typename T>
 void DestroyTree(tree_node *RootNode)
 {
     PostOrderMutation(RootNode, DestroyNode);
@@ -495,4 +494,3 @@ void LevelOrderMutation(tree_node *RootNode, void (*f)(tree_node *Node))
             NodeQueue.push(Node->RightChild);
     }
 }
-

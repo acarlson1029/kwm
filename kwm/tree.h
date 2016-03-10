@@ -83,7 +83,7 @@ template <typename T> tree_node *CreateTreeFromElements(const std::vector<T*> &E
     PostOrderMutation()
     DestroyNode()
  */
-template <typename T> void DestroyTree(tree_node *RootNode);
+void DestroyTree(tree_node *RootNode);
 
 /*! @functiongroup Searching for Nodes by Element
 
