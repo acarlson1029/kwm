@@ -75,10 +75,7 @@ void DestroyNode(tree_node *Node);
     @param Leaf (mutate) The Leaf to be removed from the Tree,
     and object deleted.
 
-    @warning This function will do nothing if the parameter is either:
-     - NULL
-     - not a Leaf Node
-     - the Root Node of the the Tree
+    @return Determine whether the Node was actually removed.
 
     @discussion
     Removal of the Leaf will rebalance the existing Tree structure to accomodate
@@ -86,13 +83,18 @@ void DestroyNode(tree_node *Node);
     exactly two Children.
     The Leaf's Sibling Node is copied into their Parent Node, and both Children
     are destroyed.
+    
+    This function will return false if the parameter is either:
+      - NULL
+      - not a Leaf Node
+      - the Root Node of the the Tree
 
     @note
     This function calls DestroyNode(), which calls `delete`
 
     @see DestroyNode()
  */
-void RemoveNodeFromTree(tree_node *Leaf);
+bool RemoveNodeFromTree(tree_node *Leaf);
 
 /*! @functiongroup Queries
     @warning These queries operate on const references -- check for NULL pointers

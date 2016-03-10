@@ -32,11 +32,14 @@ void DestroyNode(tree_node *Node)
         delete Node;
 }
 
-void RemoveNodeFromTree(tree_node *Leaf)
+bool RemoveNodeFromTree(tree_node *Leaf)
 {
+    bool Removed = false;
+
     if(!Leaf || !IsLeafNode(*Leaf))
     {
-        return;
+        DEBUG("RemoveNodeFromTree() Attempted to Remove non-Leaf Node")
+        return Removed;
     }
 
     // Case 1: Leaf is ROOT
@@ -45,7 +48,7 @@ void RemoveNodeFromTree(tree_node *Leaf)
     {
         // doesn't make sense to remove this node
         DEBUG("RemoveNodeFromTree() Tried to remove Tree Root - did you mean to Destroy Tree?")
-        return; 
+        return Removed; 
     } 
 
 
@@ -58,8 +61,9 @@ void RemoveNodeFromTree(tree_node *Leaf)
     Parent->RightChild = Sibling->RightChild;
     DestroyNode(Leaf);
     DestroyNode(Sibling);
+    Removed = true;
 
-    return;
+    return Removed;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
