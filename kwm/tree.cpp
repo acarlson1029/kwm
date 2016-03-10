@@ -294,22 +294,22 @@ T *GetNearestElementToTheRight(const tree_node &Node)
     return GetFirstElement<T>(*Right);
 }
 
-template <typename T>
-T *GetElementByID(const tree_node &Node, const uint32_t &ID)
+template <typename T ,typename K, typename R>
+R *GetElementByKey(const tree_node &Node, const K &Key, R *(*f)(const T &Element, const K &Key))
 {
-    T *Element;
+    R *FoundValue;
 
-    Element = Node.Element;
-    if(Element && Element->ID == ID)
-        return Element;
+    FoundValue = f(Node.Element, Key);
+    if(FoundValue)
+        return FoundValue;
 
-    Element = GetElementByID<T>(Node.LeftChild, ID);
-    if(Element && Element->ID == ID)
-        return Element;
+    FoundValue = GetElementByKey<R>(Node.LeftChild, Key, f);
+    if(FoundValue)
+        return FoundValue;
 
-    Element = GetElementByID<T>(Node.RightChild, ID);
-    if(Element && Element->ID == ID)
-        return Element;
+    FoundValue = GetElementByKey<R>(Node.RightChild, Key, f);
+    if(FoundValue)
+        return FoundValue;
 
     return NULL;
 }
@@ -390,13 +390,17 @@ void AddElementToTree(tree_node *RootNode, const T &Element)
 //  REMOVE ELEMENT FROM TREE
 //
 template <typename T>
-void RemoveElementFromTree(tree_node *RootNode, const T &Element)
+bool RemoveElementFromTree(tree_node *RootNode, const T &Element)
 {
+    bool Found = false;
     tree_node *Leaf = PostOrderSearch(*RootNode, Element);
 
     if(Leaf)
-        RemoveNodeFromTree(Leaf);
+    {
+        Found = RemoveNodeFromTree(Leaf);
+    }
 
+    return Found;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

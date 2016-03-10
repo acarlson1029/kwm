@@ -25,6 +25,8 @@
 
     The Tree stores pointers to the Elements, so the pointer can be retrieved
     from the Tree and the Element mutated in-place within calling scopes.
+
+    @todo Should I group all of these functions into a tree namespace? Or should I just make a class?
  */
 
 /*! @functiongroup Constructors
@@ -90,8 +92,7 @@ void DestroyTree(tree_node *RootNode);
     @pre These functions operate on a const reference to the Tree's Root Node
     Make sure the RootNode is not NULL
 
-    @todo
-    Should traversal functions have an option to branch Right before Left?
+    @todo Should traversal functions have an option to branch Right before Left?
  */
 
 /*! @brief Pre-order search for a Node containing the Element in the Tree
@@ -192,6 +193,7 @@ template <typename T> tree_node *LevelOrderSearch(const tree_node &RootNode, con
             else
                 return NULL
         }
+    @endcode
 
     If the function determines that Node is a match, it returns the Element
     in the Node, otherwise it returns NULL to signal that it didn't match,
@@ -228,6 +230,7 @@ template <typename T> T *PreOrderSearch(const tree_node &RootNode, T *(*f)(const
             else
                 return NULL
         }
+    @endcode
 
     If the function determines that Node is a match, it returns the Element
     in the Node, otherwise it returns NULL to signal that it didn't match,
@@ -293,13 +296,14 @@ template <typename T> T *InOrderSearch(const tree_node &RootNode, T *(*f)(const 
     @discussion
     This function calls the given function on each Node as it traverses the Tree:
     @code
-        template <typename T> T *f(const tree_node &Node)
-        {
-            if(<Node satisfies what I'm looking for>)
-                return Node.Element
-            else
-                return NULL
-        }
+    template <typename T> T *f(const tree_node &Node)
+    {
+        if(<Node satisfies what I'm looking for>)
+            return Node.Element
+        else
+            return NULL
+    }
+    @endcode
 
     If the function determines that Node is a match, it returns the Element
     in the Node, otherwise it returns NULL to signal that it didn't match,
@@ -334,8 +338,7 @@ template <typename T> T *LevelOrderSearch(const tree_node &RootNode, T *(*f)(con
     @see
     PreOrderSearch(Element)
  */
-template <typename T>
-bool IsElementInTree(const tree_node &RootNode, const T &Element);
+template <typename T> bool IsElementInTree(const tree_node &RootNode, const T &Element);
 
 /*! @functiongroup Get Element(s) From Tree
  */
@@ -422,37 +425,72 @@ template <typename T> T *GetNearestElementToTheRight(const tree_node &Node);
 
 /*! @brief Get the Element with the given ID
 
-    @warning
-    This function breaks the templated abstraction barrier for Elements in Trees.
-    Any scopes using this function must have populated the Tree with Elements
-    that contain an ID attribute.
-    i.e.
-    @code
-        struct Element
-        {
-            ...
-            uint32_t ID;
-            ...
-        };
-
     @param Node The Root of the subtree to search
-    @param ID The ID attribute of the Element to match
+    @param Key The Key to match
+    @param f Function whch takes a templated Element argument and a Key to 
+    determine whether that Node's Element is a match.
 
-    @return Pointer to the found Element, or NULL
-
-    @pre Ensure the Elements in the Tree have the ID attribute (see warning)
+    @return Pointer to the found value, or NULL
 
     @discussion
-    Traverse the tree from Node and check each Element->ID attribute against
-    the given parameter to find a match.
+    Call the given function on each Node's Element  as it traverses the Tree:
+    @code
+    template <typename R>
+    template <typename T>
+    template <typename K>
+    R *f(const T &Element, const K &Key)
+    {
+        R *Val;
+        if(<E satisfies the Key I'm looking for>)
+        {
+            Val = <some attribute of the Element, or the Element itself>;
+            return Val;
+        }
+        else
+            return NULL;
+    }
+    @endcode
 
-    Returns a pointer to the first Element which has a matching ID.
-    If no Element was found in the subtree, return a NULL pointer.
+    If the function determines that Element is a match, it returns the  Value, 
+    otherwise it returns NULL to signal that it didn't match, so that the 
+    traversal may continue.
+
+    @warning
+    The traversal functions should NOT be recursive and only operate on the 
+    given Element.
+    
+    @note On Usage
+    Since this function processes the given templated Element, you just need
+    a unique identifier (represented in the Key typename), and your own code to
+    process/compare the two.
+
+    Example:
+    Generally, it's easier to grab whatever data structure you're interested in
+    and parse it after-the-fact, but because of the power of templates here,
+    you can write very specific, powerful, reusable functions to do all of the
+    dirty work in one step.
+
+    Here's an example which searches a Window Stack for the AXUIElementRef of a
+    Window given only its WID.
+
+    @code
+    AXUIElementRef *f(const window_stack &Stack, const int &WID)
+    {
+        std::vector<window_info*> Windows = Stack.Windows;
+        std::vector<window_info*>::iterator WindowIt, end;
+        for(WindowIt=Windows.begin(), end=Windows.end(); WindowIt != end; ++WindowIt)
+        {
+            if((*WindowIt)->WID == WID)
+                return (*WindowIt)->Reference;
+        }
+        return NULL;
+    }
+    @endcode
 
     @note On Breaking Abstraction and Closures
     The intention here was to use the already defined traversal searching
     functions, but that would require overloading the existing ones to take
-    function pointers with an additional ID parameter.
+    function pointers with an additional Key parameter.
 
     IDEALLY this should have been accomplished with a closure, but that's only
     supported since C++11.
@@ -460,7 +498,8 @@ template <typename T> T *GetNearestElementToTheRight(const tree_node &Node);
     @note
     This function is pre-order recursive.
  */
-template <typename T> T *GetElementByID(const tree_node &Node, const uint32_t &ID);
+template <typename T, typename K, typename R>
+R *GetElementByKey(const tree_node &Node, const K &Key, R *(*f)(const T &Element, const K &Key));
 
 /*! Insert, Add, and Remove Elements
  */
@@ -483,8 +522,7 @@ template <typename T> T *GetElementByID(const tree_node &Node, const uint32_t &I
 
     Insertion can fail if the given Node does not exist (NULL ptr)
 
-    @todo
-    Add a switch to change the default left/right ordering for the new leaves
+    @todo Add a switch to change the default left/right ordering for the new leaves
  */
 template <typename T> bool InsertElementAtNode(tree_node *Node, const T &Element);
 
@@ -498,8 +536,7 @@ template <typename T> bool InsertElementAtNode(tree_node *Node, const T &Element
     Perform a Left-to-Right Level-Order search for the first Leaf Node, and
     insert the Element at this location.
 
-    @todo
-    Add a configuration setting to change the default insertion location.
+    @todo Add a configuration setting to change the default insertion location.
 
     @see InsertElementAtNode()
  */
@@ -509,14 +546,20 @@ template <typename T> void AddElementToTree(tree_node *RootNode, const T &Elemen
 
     @param RootNode (mutate) The Root of the Tree
     @param Element The Element to remove from the Tree
+
+    @return Check whether the Element was removed
     
     @discussion
     Finds the corresponding Node in the Tree which contains the Element, and
     removes that Node from the Tree.
 
+    Returns false if the Element was not found in the Tree.
+
+    @post If return is false, calling function may need to check another Tree[.](http://i.imgur.com/6MxySx6.jpg)
+
     @see RemoveNodeFromTree()
  */
-template <typename T> void RemoveElementFromTree(tree_node *RootNode, const T &Element);
+template <typename T> bool RemoveElementFromTree(tree_node *RootNode, const T &Element);
 
 /*! @brief Swap the location of the Elements in the Tree
 
