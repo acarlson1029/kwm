@@ -143,6 +143,14 @@ enum split_mode
     SplitModeHorizontal,
 };
 
+enum rotation_target
+{
+    kRotationTargetLeft,
+    kRotationTargetRight,
+    kRotationTargetFlipVertical,
+    kRotationTargetFlipHorizontal,
+};
+
 struct modifiers
 {
     bool CmdKey;

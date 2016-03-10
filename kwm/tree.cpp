@@ -1,489 +1,498 @@
 #include "tree.h"
 #include "node.h" // trees contain nodes; the next abstraction level down
+#include "container.h"
 
-tree_node *CreateTreeFromWindowIDList(const bound_rect &SpaceBoundary, const container_offset &Offset, const std::vector<window_info*> &Windows, const space_tiling_option &Mode)
+////////////////////////////////////////////////////////////////////////////////
+// CONSTRUCTORS
+//
+tree_node *CreateTree()
 {
-    tree_node *RootNode = CreateRootNode(SpaceBoundary);
-
-    bool Result = false;
-
-    if(Mode == SpaceModeBSP)
-        Result = CreateBSPTree(RootNode, SpaceBoundary, Offset, Windows);
-    else if(Mode == SpaceModeMonocle)
-        Result = CreateMonocleTree(RootNode, SpaceBoundary, Offset, Windows);
-
-    if(!Result)
-    {
-        free(RootNode);
-        RootNode = NULL;
-    }
-
-    return RootNode;
+    return CreateRootNode();
 }
 
-bool CreateBSPTree(tree_node *RootNode, const bound_rect &SpaceBoundary, const container_offset &Offset, const std::vector<window_info*> &Windows)
+template <typename T>
+tree_node *CreateTreeFromElements(const std::vector<T*> &Elements)
 {
-    Assert(RootNode, "CreateBSPTree()")
+    tree_node *RootNode = CreateTree();
 
-    bool Result = false;
-
-    if(Windows.size() >= 2)
+    typename std::vector<T*>::iterator ElemIt, end;
+    for(ElemIt = Elements.begin(), end = Elements.end(); ElemIt != end; ++ElemIt)
     {
-        tree_node *Root = RootNode;
-        Root->WindowID = Windows[0]->WID;
-        for(std::size_t WindowIndex = 1; WindowIndex < Windows.size(); ++WindowIndex)
-        {
-            // TODO - Replace with a "Find*Leaf" function call.
-            while(!IsLeafNode(Root))
-            {
-                if(!IsLeafNode(Root->LeftChild) && IsLeafNode(Root->RightChild))
-                    Root = Root->RightChild;
-                else
-                    Root = Root->LeftChild;
-            }
-
-            DEBUG("CreateBSPTree() Create pair of leafs")
-            CreateLeafNodePair(Offset, Root, Root->WindowID, Windows[WindowIndex]->WID, SplitModeOptimal);
-            Root = RootNode;
-        }
-
-        Result = true;
-    }
-    else if(Windows.size() == 1)
-    {
-        RootNode->WindowID = Windows[0]->WID;
-        Result = true;
-    }
-
-    return Result;
-}
-
-bool CreateMonocleTree(tree_node *RootNode, const bound_rect &SpaceBoundary, const container_offset &Offset, const std::vector<window_info*> &Windows)
-{
-    Assert(RootNode, "CreateMonocleTree()")
-
-    bool Result = false;
-
-    if(!Windows.empty())
-    {
-        tree_node *Root = RootNode;
-        Root->WindowID = Windows[0]->WID;
-
-        for(std::size_t WindowIndex = 1; WindowIndex < Windows.size(); ++WindowIndex)
-        {
-            tree_node *Next = CreateRootNode(SpaceBoundary);
-            Next->WindowID = Windows[WindowIndex]->WID;
-
-            Root->RightChild = Next;
-            Next->LeftChild = Root;
-            Root = Next;
-        }
-
-        Result = true;
-    }
-
-    return Result;
-}
-
-// TODO Add traversal function
-void ApplyNodeContainer(tree_node *Node, space_tiling_option Mode)
-{
-    if(Node)
-    {
-        if(Node->WindowID != -1)
-            ResizeElementInNode(Node);
-
-        if(Mode == SpaceModeBSP && Node->LeftChild)
-            ApplyNodeContainer(Node->LeftChild, Mode);
-
-        if(Node->RightChild)
-            ApplyNodeContainer(Node->RightChild, Mode);
+        AddElementToTree(RootNode, *(*ElemIt));
     }
 }
 
-void ResizeTreeNodes(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Root)
+////////////////////////////////////////////////////////////////////////////////
+// DESTRUCTORS
+//
+template <typename T>
+void DestroyTree(tree_node *RootNode)
 {
-    PreOrderTraversal(ResizeNodeContainer, SpaceBoundary, Offset, Root);
+    PostOrderMutation(RootNode, DestroyNode);
 }
 
-void DestroyNodeTree(tree_node *Node, space_tiling_option Mode)
+///////////////////////////////////////////////////////////////////////////////
+//  FIND ELEMENT IN TREE
+//
+template <typename T>
+tree_node *PreOrderSearch(const tree_node &RootNode, const T &Element)
 {
-    if(Node)
-    {
-        if(Mode == SpaceModeBSP && Node->LeftChild)
-            DestroyNodeTree(Node->LeftChild, Mode);
+	tree_node *Node;
+	*Node = RootNode;
+	if(Node->Element == Element)
+		return Node;
 
-        if(Node->RightChild)
-            DestroyNodeTree(Node->RightChild, Mode);
+	Node = PreOrderSearch(*RootNode.LeftChild, Element);
+	if(Node->Element == Element)
+		return Node;
 
-        free(Node);
-        Node = NULL;
-    }
-}
-
-void RotateTree(tree_node *Node, int Deg)
-{
-    if (Node == NULL || IsLeafNode(Node))
-        return;
-
-    DEBUG("RotateTree() " << Deg << " degrees")
-
-    if((Deg == 90 && Node->Container.SplitMode == SplitModeVertical) ||
-       (Deg == 270 && Node->Container.SplitMode == SplitModeHorizontal) ||
-       Deg == 180)
-    {
-        tree_node *Temp = Node->LeftChild;
-        Node->LeftChild = Node->RightChild;
-        Node->RightChild = Temp;
-        Node->Container.SplitRatio = 1 - Node->Container.SplitRatio;
-    }
-
-    if(Deg != 180)
-        Node->Container.SplitMode = Node->Container.SplitMode == SplitModeHorizontal ? SplitModeVertical : SplitModeHorizontal;
-
-    RotateTree(Node->LeftChild, Deg);
-    RotateTree(Node->RightChild, Deg);
-
-
-}
-
-void ToggleSubtreeSplitMode(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Node)
-{
-    if(!Node || IsLeafNode(Node))
-        return;
-
-    ToggleNodeSplitMode(Node);
-    ResizeTreeNodes(SpaceBoundary, Offset, Node);
-    ApplyNodeContainer(Node, SpaceModeBSP);
-}
-
-// FIXME  - (acarlson 03/07/16): Shouldn't need MODE here, just do a search
-tree_node *GetNodeFromWindowID(tree_node *Node, int WindowID, space_tiling_option Mode)
-{
-    if(Node)
-    {
-        tree_node *CurrentNode = GetFirstLeafNode(Node);;
-        while(CurrentNode)
-        {
-            if(CurrentNode->WindowID == WindowID)
-                return CurrentNode;
-
-            CurrentNode = GetNearestNodeToTheRight(CurrentNode, Mode);
-        }
-    }
+	Node = PreOrderSearch(*RootNode.RightChild, Element);
+	if(Node->Element == Element)
+		return Node;
 
     return NULL;
 }
 
-tree_node *GetFirstLeafNode(tree_node *Node)
+template <typename T>
+T *PreOrderSearch(const tree_node &RootNode, T *(*f)(const tree_node &Node))
 {
-    if(Node)
-    {
-        tree_node *First = Node;
-        while(!IsLeafNode(First))
-            First = First ->LeftChild;
+	T *Element;
 
-        return First;
-    }
+	Element = f(RootNode);
+	if(Element)
+		return Element;
+
+	Element = PreOrderSearch(*RootNode.LeftChild, f);
+	if(Element)
+		return Element;
+
+	Element = PreOrderSearch(*RootNode.RightChild, f);
+	if(Element)
+		return Element;
 
     return NULL;
 }
 
-tree_node *GetLastLeafNode(tree_node *Node)
+template <typename T>
+tree_node *PostOrderSearch(const tree_node &RootNode, const T &Element)
 {
-    if(Node)
-    {
-        tree_node *Last = Node;
-        while(!IsLeafNode(Last))
-            Last = Last->RightChild;
+	tree_node *Node;
 
-        return Last;
-    }
+	Node = PostOrderSearch(*RootNode.LeftChild, Element);
+	if(Node->Element == Element)
+		return Node;
+
+	Node = PostOrderSearch(*RootNode.RightChild, Element);
+	if(Node->Element == Element)
+		return Node;
+
+	*Node = RootNode;
+	if(Node->Element == Element)
+		return Node;
 
     return NULL;
 }
 
-tree_node *GetFirstPseudoLeafNode(tree_node *Node)
+template <typename T>
+T *PostOrderSearch(const tree_node &RootNode, T *(*f)(const tree_node &Node))
 {
-    tree_node *Leaf = GetFirstLeafNode(Node);
-    while(Leaf && Leaf->WindowID != -1)
-        Leaf = GetNearestNodeToTheRight(Leaf, SpaceModeBSP);
+	T *Element;
 
-    return Leaf;
-}
+	Element = PostOrderSearch(*RootNode.LeftChild, f);
+	if(Element)
+		return Element;
 
-tree_node *GetNearestLeafNeighbour(tree_node *Node, space_tiling_option Mode)
-{
-    if(Node && IsLeafNode(Node))
-    {
-        if(Mode == SpaceModeBSP)
-            return IsLeftLeaf(Node) ? GetNearestNodeToTheRight(Node, Mode) : GetNearestNodeToTheLeft(Node, Mode);
-        else if(Mode == SpaceModeMonocle)
-            return Node->LeftChild ? Node->LeftChild : Node->RightChild;
-    }
+	Element = PostOrderSearch(*RootNode.RightChild, f);
+	if(Element)
+		return Element;
+
+	Element = f(RootNode);
+	if(Element)
+		return Element;
 
     return NULL;
 }
 
-tree_node *GetNearestNodeToTheLeft(tree_node *Node, space_tiling_option Mode)
+template <typename T>
+tree_node *InOrderSearch(const tree_node &RootNode, const T &Element)
 {
-    if(Node)
-    {
-        if(Mode == SpaceModeMonocle)
-            return Node->LeftChild;
+	tree_node *Node;
 
-        if((Mode == SpaceModeBSP) && Node->Parent)
-        {
-            if(IsLeftChild(Node))
-                return GetNearestNodeToTheLeft(Node->Parent, Mode);
-            
-            tree_node *Left = Node->Parent->LeftChild;
-            if(IsLeafNode(Left))
-                return Left;
+	Node = InOrderSearch(RootNode.LeftChild, Element);
+	if(Node->Element == Element)
+		return Node;
 
-            return GetLastLeafNode(Left);
-        }
-    }
+	*Node = RootNode;
+	if(Node->Element == Element)
+		return Node;
+
+	Node = InOrderSearch(RootNode.RightChild, Element);
+	if(Node->Element == Element)
+		return Node;
 
     return NULL;
 }
 
-tree_node *GetNearestNodeToTheRight(tree_node *Node, space_tiling_option Mode)
+template <typename T>
+T *InOrderSearch(const tree_node &RootNode, T *(*f)(const tree_node &Node))
 {
-    if(Node)
-    {
-        if(Mode == SpaceModeMonocle)
-            return Node->RightChild;
+    T *Element;
 
-        if((Mode == SpaceModeBSP) && Node->Parent)
-        {
-            if(IsRightChild(Node))
-                return GetNearestNodeToTheRight(Node->Parent, Mode);
+    Element = InOrderSearch(*RootNode.LeftChild, f);
+    if(Element)
+        return Element;
 
-            tree_node *Right = Node->Parent->RightChild;
-            if(IsLeafNode(Right))
-                return Right;
+    Element = f(RootNode);
+    if(Element)
+        return Element;
 
-            return GetFirstLeafNode(Right);
-        }
-    }
+    Element = InOrderSearch(*RootNode.RightChild, f);
+    if(Element)
+        return Element;
 
     return NULL;
 }
 
-void PreOrderTraversal(void (*f)(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Root), const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Root)
+template <typename T>
+tree_node *LevelOrderSearch(const tree_node &RootNode, const T &Element) // Search for NODE from ELEMENT
 {
-    if(Root)
+    tree_node *Node;
+    *Node = RootNode;
+    std::queue<tree_node*> NodeQueue;
+    for(NodeQueue.push(Node); !NodeQueue.empty(); NodeQueue.pop())
     {
-        f(SpaceBoundary, Offset, Root);
-        PreOrderTraversal(f, SpaceBoundary, Offset, Root->LeftChild);
-        PreOrderTraversal(f, SpaceBoundary, Offset, Root->RightChild);
-    }
-}
+        tree_node *Node = NodeQueue.front();
 
-tree_node *LevelOrderSearch(bool (*is_match)(tree_node *), tree_node *Root)
-{
-    std::queue<tree_node*> qNode;
-    
-    if(Root)
-    {
-        for(qNode.push(Root); !qNode.empty(); qNode.pop())
-        {
-            tree_node *Node = qNode.front();
-
-            if(is_match(Node))
-                return Node;
-            
-            if(Node->LeftChild)
-                qNode.push(Node->LeftChild);
-
-            if(Node->RightChild)
-                qNode.push(Node->RightChild);
-        }
-    }
-
-    return NULL;
-}
-
-void AddElementToBSPTree(const container_offset &Offset, tree_node *NewParent, int WindowID, const split_mode &SplitMode) // TODO replace WindowID with element
-{
-    if(IsLeafNode(NewParent))
-    {
-        Assert((NewParent->WindowID !=-1), "AddNodeToTree()")
-
-        CreateLeafNodePair(Offset, NewParent, NewParent->WindowID, WindowID, SplitMode);
-    }
-}
-
-void AddElementToMonocleTree(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *NewParent, int WindowID) // TODO replace WindowID with element
-{
-    Assert(!NewParent->RightChild, "AddElementToMonocleTree()")
-
-    tree_node *NewNode = CreateRootNode(SpaceBoundary);
-
-    NewNode->WindowID = WindowID;
-    NewNode->LeftChild = NewParent;
-    NewParent->RightChild = NewNode;
-}
-
-void AddElementToTree(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *NewParent, int WindowID, const split_mode &SplitMode, const space_tiling_option &Mode)
-{
-    switch(Mode)
-    {
-        case SpaceModeBSP:
-            AddElementToBSPTree(Offset, NewParent, WindowID, SplitMode);
-            break;
-        case SpaceModeMonocle:
-            AddElementToMonocleTree(SpaceBoundary, Offset, NewParent, WindowID);
-            break;
-
-        default:
-            Assert(false, "AddElementToTree()")
-            return;
-    }
-    ApplyNodeContainer(NewParent, Mode);
-}
-
-void RemoveElementFromBSPTree(const bound_rect &SpaceBoundary, space_info *Space, tree_node *Node)
-{
-    if(Node)
-    {
-        tree_node *Parent = Node->Parent;
-        tree_node *ResizeRoot = NULL;
-
-        // case 1: Node == Root
-        if(!Parent)
-        {
-            Space->RootNode = NULL;
-            free(Node);
-            return;
-        }
-
-        tree_node *Sibling = IsLeftChild(Node) ? Parent->RightChild : Parent->LeftChild;
-        // case 2: Node->Parent == Root
-        if (Parent == Space->RootNode)
-        {
-            Space->RootNode = Sibling;
-            ResizeRoot = Space->RootNode;
-        }
-        else
-        {
-            tree_node *Grandparent = Parent->Parent;
-            if(IsLeftChild(Parent))
-                Grandparent->LeftChild = Sibling;
-            else
-                Grandparent->RightChild = Sibling;
-
-            ResizeRoot = Grandparent;
-
-        }
-
-        free(Node);
-        free(Parent);
-
-        ResizeTreeNodes(SpaceBoundary, Space->Offset, ResizeRoot);
-        ApplyNodeContainer(ResizeRoot, Space->Mode);
-    }
-}
-
-void RemoveElementFromMonocleTree(space_info *Space, tree_node *Node)
-{
-    if(Node)
-    {
-        tree_node *Prev = Node->LeftChild;
-        tree_node *Next = Node->RightChild;
-
-        if(Prev)
-            Prev->RightChild = Next;
-
-        if(Next)
-            Next->LeftChild = Prev;
-
-        if(!Prev) // root node of monocle tree
-            Space->RootNode = Next;
-
-        free(Node);
-    }
-}
-
-void RemoveElementFromTree(const bound_rect &SpaceBoundary, space_info *Space,  tree_node *Root, int WindowID, const space_tiling_option &Mode)
-{
-    if(Root)
-    {
-        tree_node *Node = GetNodeFromWindowID(Root, WindowID, Mode);
+        if(Node->Element == Element)
+            return Node;
         
-        switch(Mode)
-        {
-            case SpaceModeBSP:
-                RemoveElementFromBSPTree(SpaceBoundary, Space, Node);
-                break;
-            case SpaceModeMonocle:
-                RemoveElementFromMonocleTree(Space, Node);
-                break;
+        if(Node->LeftChild)
+            NodeQueue.push(Node->LeftChild);
 
-            default:
-                Assert (false, "RemoveElementFromTree()")
-                return;
-        }
+        if(Node->RightChild)
+            NodeQueue.push(Node->RightChild);
     }
+    return NULL;
 }
 
-void ModifySubtreeSplitRatio(const bound_rect &SpaceBoundary, tree_node *Root, const double &Delta, const container_offset &Offset, const space_tiling_option &Mode)
+template <typename T>
+T *LevelOrderSearch(const tree_node &RootNode, T *(*f)(const tree_node &Node)) // Search for ELEMENT from NODE
 {
-    if(Root && ModifyNodeSplitRatio(Root->Parent, Delta))
+    tree_node *Node;
+    std::queue<tree_node*> NodeQueue;
+    T *Element;
+    
+    *Node = RootNode;
+    for(NodeQueue.push(Node); !NodeQueue.empty(); NodeQueue.pop())
     {
-        ResizeTreeNodes(SpaceBoundary, Offset, Root->Parent);
-        ApplyNodeContainer(Root->Parent, Mode);
+        Node = NodeQueue.front();
+        Element = f(*Node);
+
+        if(Element)
+            return Element;
+        
+        if(Node->LeftChild)
+            NodeQueue.push(Node->LeftChild);
+
+        if(Node->RightChild)
+            NodeQueue.push(Node->RightChild);
     }
+    return NULL;
 }
 
-bool ToggleElementInTree(const bound_rect &SpaceBoundary, tree_node *Root, const int &WindowID, const space_tiling_option &Mode, const container_offset &Offset)
+////////////////////////////////////////////////////////////////////////////////
+//  QUERIES
+//
+template <typename T>
+bool IsElementInTree(const tree_node &RootNode, const T &Element)
 {
-    if(Mode != SpaceModeBSP)
+    tree_node *Node = PreOrderSearch(RootNode, Element);
+        
+    return (Node && *Node->Element == Element);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//  GET ELEMENT FROM TREE
+//
+template <typename T>
+std::vector<T*> *LevelOrderCollection(const tree_node &RootNode, T *(*f)(const tree_node &Node))
+{
+    // Like LevelOrderSearch, but instead of returning the first item found, it returns all items found.
+    // TODO Can I genericize this to always return the collection and just use the first returned value?
+    std::queue<tree_node*> NodeQueue;
+    std::vector<T*> Elements;
+    tree_node *Node;
+    T *Element;
+
+    *Node = RootNode;
+    for(NodeQueue.push(Node); !NodeQueue.empty(); NodeQueue.pop())
+    {
+        Element = f(*NodeQueue.front());
+
+        if(Element)
+            Elements.push_back(Element);
+
+        if(Node->LeftChild)
+            NodeQueue.push(Node->LeftChild);
+
+        if(Node->RightChild)
+            NodeQueue.push(Node->RightChild);
+    }
+
+    return &Elements;
+}
+
+template <typename T>
+T *GetFirstElement(const tree_node &Node)
+{
+    tree_node *First = GetFirstLeafNode(Node);
+    if(First)
+        return First->Element;
+    else
+        return NULL;
+}
+
+template <typename T>
+T *GetLastElement(const tree_node &Node)
+{
+    tree_node *Last = GetLastLeafNode(Node);
+    if(Last)
+        return Last->Element;
+    else
+        return NULL;
+}
+
+template <typename T>
+T *GetNearestElementToTheLeft(const tree_node &Node)
+{
+    if(IsRootNode(Node))
+        return Node.Element;
+    
+    if(IsLeftChild(Node))
+        return GetNearestElementToTheLeft<T>(*Node.Parent);
+            
+    tree_node *Left = Node.Parent->LeftChild;
+    if(IsLeafNode(*Left))
+        return Left->Element;
+
+    return GetLastElement<T>(*Left);
+}
+
+template <typename T>
+T *GetNearestElementToTheRight(const tree_node &Node)
+{
+
+    if(IsRootNode(Node))
+        return Node.Element;
+
+    if(IsRightChild(Node))
+        return GetNearestElementToTheRight<T>(Node.Parent);
+            
+    tree_node *Right = Node.Parent->RightChild;
+    if(IsLeafNode(*Right))
+        return Right;
+
+    return GetFirstElement<T>(*Right);
+}
+
+template <typename T>
+T *GetElementByID(const tree_node &Node, const uint32_t &ID)
+{
+    T *Element;
+
+    Element = Node.Element;
+    if(Element && Element->ID == ID)
+        return Element;
+
+    Element = GetElementByID<T>(Node.LeftChild, ID);
+    if(Element && Element->ID == ID)
+        return Element;
+
+    Element = GetElementByID<T>(Node.RightChild, ID);
+    if(Element && Element->ID == ID)
+        return Element;
+
+    return NULL;
+}
+
+// TODO Move this function out of TREE
+// It has nothing to do with a TREE ADT
+// Using window_stack explicitly because we're breaking abstraction to access container information.
+window_stack *GetElementAtPosition(const tree_node &Node, const int &X, const int &Y)
+{
+    if(IsLeafNode(Node))
+    {
+        if(IsPointInContainer(Node.Element->Container, X, Y))
+            return Node.Element;
+        else
+            return NULL;
+    }
+    if(IsPointInContainer(Node.LeftChild->Element->Container, X, Y))
+        return GetElementAtPosition(*Node.LeftChild, X, Y);
+
+    if(IsPointInContainer(Node.RightChild->Element->Container, X, Y))
+        return GetElementAtPosition(*Node.RightChild, X, Y);
+
+    return NULL;
+}
+
+//window_stack *GetFirstPseudoLeafNode(tree_node *Node); // TODO balanced default position
+
+////////////////////////////////////////////////////////////////////////////////
+//  INSERT ELEMENT INTO TREE
+//  TODO does this need to be boolean?
+template <typename T>
+bool InsertElementAtNode(tree_node *Node, const T &Element)
+{
+    // NOTE - Calling functions need to manage the containers of the elements accordingly
+    
+    if(!Node)
         return false;
 
-    tree_node *Node = GetNodeFromWindowID(Root, WindowID, SpaceModeBSP);
-
-    if(Node && Node->Parent)
+    if(IsRootNode(*Node) && !Node->Element)
     {
-        if(IsLeafNode(Node) && Node->Parent->WindowID == -1) // TODO Add a function to check if node has elements or is just a parent.
-        {
-            DEBUG("ToggleElementInTree() Set Element In Node")
-            SetElementInNode(SpaceBoundary, Offset, Node, WindowID);
-        }
-        else
-        {
-            DEBUG("ToggleElementInTree() Restore Element In Node")
-            ClearElementInNode(SpaceBoundary, Offset, Node);
-        }
+        Node->Element = Element;
         return true;
     }
 
-    return false;
-}
+    tree_node *Left = CreateLeafNode(*Node);
+    tree_node *Right = CreateLeafNode(*Node);
 
-bool ToggleElementInRoot(const bound_rect &SpaceBoundary, tree_node *Root, const int &WindowID, const space_tiling_option &Mode, const container_offset &Offset)
-{
-    if(Mode != SpaceModeBSP || IsLeafNode(Root))
-        return false;
+    // SET the values in the Tree.
+    // TODO Add switch for spawn location
+    Left->Element = Element;
+    Right->Element = Node->Element;
 
-    if(Root->WindowID == -1)
-    {
-        // TODO Should calling functions be trying to toggle invalid WindowIDs?
-        // This wastes cycles trying to find it.
-        tree_node *Node = GetNodeFromWindowID(Root, WindowID, Mode);
-        if(Node) // if it was found
-        {
-            DEBUG("ToggleElementInRoot() Set root element")
-            SetElementInNode(SpaceBoundary, Offset, Root, WindowID);
-        }
-    }
-    else
-    {
-        DEBUG("ToggleElementInRoot() Clear root element")
-        ClearElementInNode(SpaceBoundary, Offset, Root);
-        tree_node *Node = GetNodeFromWindowID(Root, WindowID, Mode);
-        SetElementInNode(SpaceBoundary, Offset, Node, WindowID); // resize the window back to fit its container
-    }
+    // Reset the value in Node
+    Node->LeftChild = Left;
+    Node->RightChild = Right;
+    Node->Element = NULL;
+
     return true;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+//  ADD ELEMENT TO TREE
+//
+template <typename T>
+void AddElementToTree(tree_node *RootNode, const T &Element)
+{
+    // TODO configuration for default add location
+    // Will try to add it to the most balanced location.
+    // LO does L->R; could implement a reverse LO search.
+    tree_node *Destination = LevelOrderSearch(*RootNode, GetNodeIfLeaf);
+
+    Assert(Destination, "AddElementToTree() Did not find any Leaves in the Tree!")
+
+    InsertElementAtNode(Destination, Element);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//  REMOVE ELEMENT FROM TREE
+//
+template <typename T>
+void RemoveElementFromTree(tree_node *RootNode, const T &Element)
+{
+    tree_node *Leaf = PostOrderSearch(*RootNode, Element);
+
+    if(Leaf)
+        RemoveNodeFromTree(Leaf);
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//  SWAP ELEMENTS IN TREE
+//  TODO -- Calling function needs to process the containers themselves to resize
+template <typename T>
+void SwapElementsInTree(tree_node *RootNode, const T &ElementOne, const T &ElementTwo)
+{
+    tree_node *NodeOne = PostOrderSearch(*RootNode, ElementOne);
+    tree_node *NodeTwo = PostOrderSearch(*RootNode, ElementTwo);
+
+    if(!NodeOne || !NodeTwo)
+        return;
+
+    NodeOne->Element = ElementTwo;
+    NodeTwo->Element = ElementOne;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//  MUTATE TREE
+//
+void RebalanceTree(tree_node *RootNode)
+{
+    // TODO
+    if(!RootNode || IsLeafNode(*RootNode))
+        return;
+}
+
+void RotateTree(tree_node *RootNode, const rotation_target &Rotation)
+{
+    // TODO
+    if(!RootNode || IsLeafNode(*RootNode))
+        return;
+
+    // Rotation can be LEFT or RIGHT
+    // note -- a 180 degree rotation is just two left/right rotations
+}
+
+void FlipTree(tree_node *RootNode, const rotation_target &Rotation)
+{
+    // TODO
+    if(!RootNode || IsLeafNode(*RootNode))
+        return;
+
+    // Rotation can be VERTICAL or HORIZONTAL
+}
+
+// Mutate every Node in the Tree.
+void PreOrderMutation(tree_node *RootNode, void (*f)(tree_node *Node))
+{
+    if(!RootNode)
+        return;
+
+    f(RootNode);
+    PreOrderMutation(RootNode->LeftChild, f);
+    PreOrderMutation(RootNode->RightChild, f);
+}
+
+void PostOrderMutation(tree_node *RootNode, void (*f)(tree_node *Node))
+{
+    if(!RootNode)
+        return;
+
+    PostOrderMutation(RootNode->LeftChild, f);
+    PostOrderMutation(RootNode->RightChild, f);
+    f(RootNode);
+}
+
+void InOrderMutation(tree_node *RootNode, void (*f)(tree_node *Node))
+{
+    if(!RootNode)
+        return;
+
+    InOrderMutation(RootNode->LeftChild, f);
+    f(RootNode);
+    InOrderMutation(RootNode->RightChild, f);
+}
+
+void LevelOrderMutation(tree_node *RootNode, void (*f)(tree_node *Node))
+{
+    if(!RootNode)
+        return;
+
+    std::queue<tree_node*> NodeQueue;
+    for(NodeQueue.push(RootNode); !NodeQueue.empty(); NodeQueue.pop())
+    {
+        tree_node *Node = NodeQueue.front();
+
+        f(Node);
+        
+        if(Node->LeftChild)
+            NodeQueue.push(Node->LeftChild);
+
+        if(Node->RightChild)
+            NodeQueue.push(Node->RightChild);
+    }
+}
+

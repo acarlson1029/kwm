@@ -1,194 +1,546 @@
-/* Functions that operate on Trees and Nodes */
-#ifndef TREE_H
-#define TREE_H
+#ifndef __TREE__
+#define __TREE__
 
 #include "types.h"
 
-/* Create a BSP Tree starting at the RootNode from a list of Windows
+/*! @header tree.h
+    @abstract
+    Functions describing an abstract Binary Tree data structure which contains
+    Nodes.
 
-    Map:
-        Tree ~> Tree
+    Each Node contains pointer to a stored Element, and pointers to other Nodes:
+      * Parent
+      * LeftChild
+      * RightChild
 
-    Parameters:
-    [M] RootNode - Make this the Root of the created Tree.
-        SpaceBoundary - the boundary rect of the Space
-        Offset   - the Space gap offset padding.
-        Windows  - the list of Windows to be added to the tree.
-        
-    Mutations:
-        RootNode will be updated with the full Tree (NodeChildren pointers set)
+    Every Node in the Tree must have exactly Zero or Two children.
+    Only Leaf Nodes (i.e. no children) contain a valid Element in the Tree.
 
-    Return:
-        bool - true  : Tree created successfully
-               false : No Tree created
+    @note
+    These functions should be type-agnostic toward the Element stored in the 
+    Nodes of the Tree.
 
-    Called Functions:
-        node :: IsLeafNode(..)
-        node :: CreateLeafNodePair(Offset, ..., SplitModeOptimal)
+    Mutation functions have been provided to traverse the Tree and operate
+    on the Elements for scopes which contain a Tree data structure.
 
-    Calling Functions:
-        CreateTreeFromWindowIDList()
-    
-    Notes:
-
-    TODO: This function should just call AddElementToTree for each Window
-    TODO: This function should genericize the input to "Elements" instead of "Windows"
-*/
-bool CreateBSPTree(tree_node *RootNode, const bound_rect &SpaceBoundary, const container_offset &Offset, const std::vector<window_info*> &Windows);
-
-/* Create a Monocle Tree starting at the RootNode from a list of Windows
-
-    Map:
-        Tree ~> Tree
-
-    Parameters:
-    [M] RootNode - Make this the Root of the created Tree.
-        SpaceBoundary - the boundary rect of the Space
-        Offset   - the Space gap offset padding.
-        Windows  - the list of Windows to be added to the tree.
-        
-    Mutations:
-        RootNode will be updated with the full Tree (NodeChildren pointers set)
-
-    Return:
-        bool - true  : Tree created successfully
-               false : No Tree created (empty Element list)
-
-    Called Functions:
-        node :: CreateRootNode()
-
-    Calling Functions:
-        CreateTreeFromWindowIDList()
-    
-    Notes:
-
-    TODO: This function should just call AddElementToTree for each Window
-    TODO: This function should genericize the input to "Elements" instead of "Windows"
-*/
-bool CreateMonocleTree(tree_node *RootNode, const bound_rect &SpaceBoundary, const container_offset &Offset, const std::vector<window_info*> &Windows);
-
-/* Create a BSP or Monocle Tree for a list of Windows
-
-    Map:
-        Tree ~> Tree
-
-    Parameters:
-        SpaceBoundary - the boundary rect of the Space
-        Offset  - the Offset to use when creating the container.
-        Windows - the Elements to add to the tree.
-        Mode    - the Space Tiling Mode
-                  note: SpaceModeBSP and SpaceModeMonocle get Trees, others get NULL
-        
-    Mutations:
-        (none)
-
-    Return:
-        tree_node - the RootNode of the created Tree
-                    NULL if tree not created
-
-    Called Functions:
-        tree :: CreateBSPTree()
-        tree :: CreateMonocleTree()
-        
-    Calling Functions:
-        windowtree :: CreateWindowNodeTree()
-    
-    Notes:
-    
-*/
-tree_node *CreateTreeFromWindowIDList(const bound_rect &SpaceBoundary, const container_offset &Offset, const std::vector<window_info*> &Windows, const space_tiling_option &Mode);
-
-/* Recursively destroy the subtree and deallocate memory starting at Node
-    Input:
-        Node - root of the subtree to destroy
-        Mode - whether the tree is BSP or Monocle
-    Output:
-        Node - destroy Node and all Nodes in subtree.
-*/
-void DestroyNodeTree(tree_node *Node, space_tiling_option Mode);
-
-/* Create new Nodes for Element, and insert them into the Tree */
-void AddElementToBSPTree(const container_offset &Offset, tree_node *NewParent, int WindowID, const split_mode &SplitMode);
-void AddElementToMonocleTree(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *NewParent, int WindowID);
-void AddElementToTree(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *NewParent, int WindowID, const split_mode &SplitMode, const space_tiling_option &Mode);
-
-/* Remove Element from Tree, and delete the Node if necessary. Rearranges the Tree */
-void RemoveElementFromBSPTree(const bound_rect &SpaceBoundary, space_info *Space, tree_node *Node);
-void RemoveElementFromMonocleTree(space_info *Space, tree_node *Node);
-void RemoveElementFromTree(const bound_rect &SpaceBoundary, space_info *Space, tree_node *Root, int WindowID, const space_tiling_option &Mode);
-
-/* Promote Element in Tree. Assign the Element its Node's Parent, using its Container
- * This is useful for things like toggling a Window to fill its parent container, or 
- * toggling a window to go fullscreen (Root node container) */
-// TODO Can these functions be combined?
-bool ToggleElementInTree(const bound_rect &SpaceBoundary, tree_node *Root, const int &WindowID, const space_tiling_option &Mode, const container_offset &Offset);
-bool ToggleElementInRoot(const bound_rect &SpaceBoundary, tree_node *Root, const int &WindowID, const space_tiling_option &Mode, const container_offset &Offset);
-
-/* Recursively swap left and right children according to Deg
-    Input:
-        Node - root of the subtree to start swapping
-        Deg - number of degrees to rotate (valid 90, 180, 270)
-            90:  Rotate right, switch from SplitModeVertical to SplitModeHorizontal
-            180: Keep split mode, just swap windows.
-            270: Rotate left, switch from SplitModeHorizontal to SplitModeVertical
-    Output:
-        tree_node *Node - mutate LeftChild, RightChild, and Container for every node in subtree.
-*/
-void RotateTree(tree_node *Node, int Deg);
-
-/* Recursively resize all windows in nodes in subtree 
-    Map:
-        Window Resize -> tree
-    Input:
-        tree_node *Node - subtree containing nodes to be resized
-        space_tiling_window_option Mode - whether we're in SpaceModeBSP
-    Output:
-        tree_node *Node - resized windows in children
-*/
-void ApplyNodeContainer(tree_node *Node, space_tiling_option Mode);
-
-/* Recursively resize all node containers in nodes in subtree.
-    Map:
-        Container Resize -> tree
-    Input:
-        SpaceBoundary - the boundary rect of the Space
-        Root - the root node of the tree to resize containers for,
-               based off of Root.Container
-    Output:
-        tree_node *Root - mutate the containers of all nodes in the tree starting from Root.
+    The Tree stores pointers to the Elements, so the pointer can be retrieved
+    from the Tree and the Element mutated in-place within calling scopes.
  */
-void ResizeTreeNodes(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Root);
 
-/* Change split_mode for node, 
-   recursively create new containers for subtree, and
-   recursively resize all windows to fit in subtree node containers.
-    Input:
-        SpaceBoundary - the boundary rect of the Space
-        Node - root of subtree to process
-    Output:
-        tree_node *Node - Mutate SplitMode, Container, 
-                          containers all nodes in subtree, and 
-                          window size in all nodes of subtree.
-*/
-void ToggleSubtreeSplitMode(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Node);
+/*! @functiongroup Constructors
+ */
 
-void ModifySubtreeSplitRatio(const bound_rect &SpaceBoundary, tree_node *Root, const double &Delta, const container_offset &Offset, const space_tiling_option &Mode);
+/*! @brief Create an empty Tree
 
-/* Tree traversal/selection */
-/* GET functions -- no mutation of inputs */
-tree_node *GetFirstLeafNode(tree_node *Node);   // left-most leaf
-tree_node *GetLastLeafNode(tree_node *Node);    // right-most leaf
-tree_node *GetNearestNodeToTheLeft(tree_node *Node, space_tiling_option Mode);
-tree_node *GetNearestNodeToTheRight(tree_node *Node, space_tiling_option Mode);
-tree_node *GetNearestLeafNeighbour(tree_node *Node, space_tiling_option Mode);
-tree_node *GetFirstPseudoLeafNode(tree_node *Node);
-tree_node *GetNodeFromWindowID(tree_node *Node, int WindowID, space_tiling_option Mode);
+    @return `tree_node` pointer to the Root Node of the Tree
+ */
+tree_node *CreateTree();
 
-/* Traversal helper functions */
+/*! @brief Create a Tree populated with a list of Elements
 
-/* Apply function *f to each Node in the Tree */
-void PreOrderTraversal(void (*f)(const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Root), const bound_rect &SpaceBoundary, const container_offset &Offset, tree_node *Root);
-/* Search the Nodes in the tree, until is_match(Node) returns true */
-tree_node *LevelOrderSearch(bool (*is_match)(tree_node *), tree_node *Root);
+    @param Elements The list of Elements to be added to the Tree
+
+    @return `tree_node` pointer to the Root Node of the Tree
+
+    @pre Fully construct the Elements, otherwise it will be time-consuming to find them
+    in the fully populated Tree and postprocess them.
+
+    @note
+    The Elements are added to the Tree based on the location determined
+    by AddElementToTree().
+    Set configuration options related to this in order to tune Tree creation.
+
+    @post Traverse the Tree to apply any Element mutations that are dependent
+    on an Element's position within the Tree
+
+    @see
+    CreateTree()
+    AddElementToTree()
+ */
+template <typename T> tree_node *CreateTreeFromElements(const std::vector<T*> &Elements);
+
+/*! @functiongroup Destructors
+ */
+
+/*! @brief Destroy the subtree specified by RootNode, deleting memory for all 
+    of the Nodes
+
+    @param The Root of the Tree to destroy
+
+    @note
+    This function can be called on a subtree of an existing tree, 
+    destroying only the Nodes within that subtree.
+
+    @warning
+    All of the Nodes in the Tree will be deleted and lost.
+    If you intend to remove elements instead (i.e. for reinsertion), use 
+    RemoveElementFromTree()
+
+    @pre If Destroying a subtree, make sure the parent Tree is rebalanced for
+    the removal of the RootNode parameter.
+
+    @see
+    PostOrderMutation()
+    DestroyNode()
+ */
+template <typename T> void DestroyTree(tree_node *RootNode);
+
+/*! @functiongroup Searching for Nodes by Element
+
+    @pre These functions operate on a const reference to the Tree's Root Node
+    Make sure the RootNode is not NULL
+
+    @todo
+    Should traversal functions have an option to branch Right before Left?
+ */
+
+/*! @brief Pre-order search for a Node containing the Element in the Tree
+
+    @param RootNode The Root of the subtree to search
+    @param Element The Element used for the search
+
+    @return `tree_node` pointer to the Node containing the Element, or NULL
+
+    @discussion
+    Pre-order search checks the Root Node first, then the Nodes in the Left 
+    branch, and then the Nodes in the Right branch of the Tree.
+
+    Returns as soon as the first match is found.
+    If no match is found, return a NULL pointer.
+    
+    @note
+    This function is recursive.
+ */
+template <typename T> tree_node *PreOrderSearch(const tree_node &RootNode, const T &Element);
+
+/*! @brief Post-order search for a Node containing the Element in the Tree
+
+    @param RootNode The Root of the subtree to search
+    @param Element The Element used for the search
+
+    @return `tree_node` pointer to the Node containing the Element, or NULL
+
+    @discussion
+    Post-order search checks the Nodes in the Left branch first, then the Nodes
+    in the Right branch, and then the Root Node of the Tree
+
+    Returns as soon as the first match is found.
+    If no match is found, return a NULL pointer.
+    
+    @note
+    This function is recursive.
+ */
+template <typename T> tree_node *PostOrderSearch(const tree_node &RootNode, const T &Element);
+
+/*! @brief In-order search for a Node containing the Element in the Tree
+
+    @param RootNode The Root of the subtree to search
+    @param Element The Element used for the search
+
+    @return `tree_node` pointer to the Node containing the Element, or NULL
+
+    @discussion
+    In-order search checks the Nodes in the Left branch first, then the Root
+    Node, and then the Nodes in the Right branch of the Tree.
+
+    Returns as soon as the first match is found.
+    If no match is found, return a NULL pointer.
+    
+    @note
+    This function is recursive.
+ */
+template <typename T> tree_node *InOrderSearch(const tree_node &RootNode, const T &Element);
+
+/*! @brief Level-order search for a Node containing the Element in the Tree
+
+    @param RootNode The Root of the subtree to search
+    @param Element The Element used for the search
+
+    @return `tree_node` pointer to the Node containing the Element, or NULL
+
+    @discussion
+    In-order search checks the Root Node first, then the Nodes in the next
+    level down from Left to Right, and continues down one level each iteration.
+
+    Returns as soon as the first match is found.
+    If no match is found, return a NULL pointer.
+    
+    @note
+    This function is NOT recursive - it uses a queue.
+ */
+template <typename T> tree_node *LevelOrderSearch(const tree_node &RootNode, const T &Element);
+
+/*! @functiongroup Searching Elements by Node
+ */
+
+/*! @brief Pre-order search for an Element as a function on its Node
+
+    @param RootNode The Root of the subtree to search
+    @param f Function that takes a `tree_node` argument to determine whether
+    that Node's Element is a match.
+
+    @return <template> pointer to the Element in the Node that satisfies the
+    search function, or NULL
+
+    @discussion
+    This function calls the given function on each Node as it traverses the Tree:
+    @code
+        template <typename T> T *f(const tree_node &Node)
+        {
+            if(<Node satisfies what I'm looking for>)
+                return Node.Element
+            else
+                return NULL
+        }
+
+    If the function determines that Node is a match, it returns the Element
+    in the Node, otherwise it returns NULL to signal that it didn't match,
+    so that the traversal may continue.
+
+    @warning
+    The traversal functions should NOT be recursive and only operate on the 
+    given Node
+
+    Returns as soon as the first match is found.
+    If no match is found, return a NULL pointer.
+
+    @note
+    This function is pre-order recursive.
+ */
+template <typename T> T *PreOrderSearch(const tree_node &RootNode, T *(*f)(const tree_node &Node));
+
+/*! @brief Post-order search for an Element as a function on its Node
+
+    @param RootNode The Root of the subtree to search
+    @param f Function that takes a `tree_node` argument to determine whether
+    that Node's Element is a match.
+
+    @return <template> pointer to the Element in the Node that satisfies the
+    search function, or NULL
+
+    @discussion
+    This function calls the given function on each Node as it traverses the Tree:
+    @code
+        template <typename T> T *f(const tree_node &Node)
+        {
+            if(<Node satisfies what I'm looking for>)
+                return Node.Element
+            else
+                return NULL
+        }
+
+    If the function determines that Node is a match, it returns the Element
+    in the Node, otherwise it returns NULL to signal that it didn't match,
+    so that the traversal may continue.
+
+    @warning
+    The traversal functions should NOT be recursive and only operate on the 
+    given Node
+
+    Returns as soon as the first match is found.
+    If no match is found, return a NULL pointer.
+
+    @note
+    This function is post-order recursive.
+ */
+template <typename T> T *PostOrderSearch(const tree_node &RootNode, T *(*f)(const tree_node &Node));
+
+/*! @brief In-order search for an Element as a function on its Node
+
+    @param RootNode The Root of the subtree to search
+    @param f Function that takes a `tree_node` argument to determine whether
+    that Node's Element is a match.
+
+    @return <template> pointer to the Element in the Node that satisfies the
+    search function, or NULL
+
+    @discussion
+    This function calls the given function on each Node as it traverses the Tree:
+    @code
+        template <typename T> T *f(const tree_node &Node)
+        {
+            if(<Node satisfies what I'm looking for>)
+                return Node.Element
+            else
+                return NULL
+        }
+
+    If the function determines that Node is a match, it returns the Element
+    in the Node, otherwise it returns NULL to signal that it didn't match,
+    so that the traversal may continue.
+
+    @warning
+    The traversal functions should NOT be recursive and only operate on the 
+    given Node
+
+    Returns as soon as the first match is found.
+    If no match is found, return a NULL pointer.
+
+    @note
+    This function is in-order recursive.
+ */
+template <typename T> T *InOrderSearch(const tree_node &RootNode, T *(*f)(const tree_node &Node));
+
+/*! @brief Level-order search for an Element as a function on its Node
+
+    @param RootNode The Root of the subtree to search
+    @param f Function that takes a `tree_node` argument to determine whether
+    that Node's Element is a match.
+
+    @return <template> pointer to the Element in the Node that satisfies the
+    search function, or NULL
+
+    @discussion
+    This function calls the given function on each Node as it traverses the Tree:
+    @code
+        template <typename T> T *f(const tree_node &Node)
+        {
+            if(<Node satisfies what I'm looking for>)
+                return Node.Element
+            else
+                return NULL
+        }
+
+    If the function determines that Node is a match, it returns the Element
+    in the Node, otherwise it returns NULL to signal that it didn't match,
+    so that the traversal may continue.
+
+    @warning
+    The traversal functions should NOT be recursive and only operate on the 
+    given Node
+
+    Returns as soon as the first match is found.
+    If no match is found, return a NULL pointer.
+
+    @note
+    This function is NOT recursive. It iterates in level-order using a queue.
+ */
+template <typename T> T *LevelOrderSearch(const tree_node &RootNode, T *(*f)(const tree_node &Node));
+
+/*! @functiongroup Queries
+ */
+
+/*! @brief Check membership of the Element in the Tree
+
+    @param RootNode The Root of the subtree to search
+    @param Element The Element used for the search
+
+    @return Whether the Element was found in the Tree
+
+    @discussion
+    Performs a pre-order search for the given Element in the Tree.
+    If the Element was found by the search, returns true, otherwise false.
+
+    @see
+    PreOrderSearch(Element)
+ */
+template <typename T>
+bool IsElementInTree(const tree_node &RootNode, const T &Element);
+
+/*! @functiongroup Get Element(s) From Tree
+ */
+
+/*! @brief Collect all of the Elements in the Tree left-to-right, top-to-bottom
+
+    @param RootNode The Root of the subtree to collect the Elements from
+    @param f Function that takes a `tree_node` argument to determine whether
+    that Node's Element is a match.
+
+    @return Collection of pointers to all of the Elements in the Tree
+
+    @note This function is the same as LevelOrderSearch, except instead of 
+    returning on the first match, it collects all of the matches and continues
+    traversing the tree.
+
+    @see LevelOrderSearch(f)
+ */
+template <typename T> std::vector<T*> *LevelOrderCollection(const tree_node &RootNode, T *(*f)(const tree_node &Node));
+
+/*! @brief Get the first Element in the subtree starting at Node
+
+    @param Node The Root of the subtree to search for Element
+
+    @return Pointer to the found Element, or NULL
+
+    @discussion
+    The "First" Element is defined as the Element in the left-most Leaf node,
+    regardless of the level of the Tree it's found on.
+
+    @note
+    This function will return a NULL pointer if the specified matching Node
+    does not contain an Element.
+
+    @see GetFirstLeafNode()
+ */
+template <typename T> T *GetFirstElement(const tree_node &Node);
+
+/*! @brief Get the last Element in the subtree starting at Node
+ 
+    @param Node The Root of the subtree to search for the Element
+
+    @return Pointer to the found Element, or NULL
+
+    @discussion
+    The "Last" Element is defined as the Element in the right-most Leaf node, 
+    regardless of the level of the Tree it's found on.
+
+    @note
+    This function will return a NULL Pointer if the specified matching Node 
+    does not contain an Element.
+
+    @see GetLastLeafNode()
+ */
+template <typename T> T *GetLastElement(const tree_node &Node);
+
+/*! @brief Get the Element in the Leaf Node to the left of Node
+ 
+    @param Node
+
+    @return Pointer to the found Element, or NULL
+
+    @note
+    This function will return a NULL Pointer if the specified matching Node 
+    could not be found, or does not contain an Element.
+
+    @see GetNearestElementToTheLeft()
+ */
+template <typename T> T *GetNearestElementToTheLeft(const tree_node &Node);
+
+/*! @brief Get the Element in the Leaf Node to the right of Node
+ 
+    @param Node
+
+    @return Pointer to the found Element, or NULL
+
+    @note
+    This function will return a NULL Pointer if the specified matching Node 
+    could not be found, or does not contain an Element.
+
+    @see GetNearestElementToTheRight()
+ */
+template <typename T> T *GetNearestElementToTheRight(const tree_node &Node);
+
+/*! @brief Get the Element with the given ID
+
+    @warning
+    This function breaks the templated abstraction barrier for Elements in Trees.
+    Any scopes using this function must have populated the Tree with Elements
+    that contain an ID attribute.
+    i.e.
+    @code
+        struct Element
+        {
+            ...
+            uint32_t ID;
+            ...
+        };
+
+    @param Node The Root of the subtree to search
+    @param ID The ID attribute of the Element to match
+
+    @return Pointer to the found Element, or NULL
+
+    @pre Ensure the Elements in the Tree have the ID attribute (see warning)
+
+    @discussion
+    Traverse the tree from Node and check each Element->ID attribute against
+    the given parameter to find a match.
+
+    Returns a pointer to the first Element which has a matching ID.
+    If no Element was found in the subtree, return a NULL pointer.
+
+    @note On Breaking Abstraction and Closures
+    The intention here was to use the already defined traversal searching
+    functions, but that would require overloading the existing ones to take
+    function pointers with an additional ID parameter.
+
+    IDEALLY this should have been accomplished with a closure, but that's only
+    supported since C++11.
+
+    @note
+    This function is pre-order recursive.
+ */
+template <typename T> T *GetElementByID(const tree_node &Node, const uint32_t &ID);
+
+/*! Insert, Add, and Remove Elements
+ */
+
+/*! @brief Insert the given Element into the Tree at the specified Node
+
+    @param Node (mutate) The Node to split into a Parent with a new Leaf
+    @param Element The Element to insert at the given Node
+
+    @return Whether or not the new Element was added to the Tree
+
+    @pre Find the Node that you want to split to create a Leaf
+    @post Any operations on the Element that are dependent on its position in
+    the Tree need to be performed after insertion.
+
+    @discussion
+    Split the existing Node into a Parent Node with two Children.
+    The Left Child will be the newly created Leaf from the Element.
+    The Right Child will be the subtree specified by Node.
+
+    Insertion can fail if the given Node does not exist (NULL ptr)
+
+    @todo
+    Add a switch to change the default left/right ordering for the new leaves
+ */
+template <typename T> bool InsertElementAtNode(tree_node *Node, const T &Element);
+
+/*! @brief Add the given Element into the Tree
+
+    @param RootNode (mutate) The Root of the Tree structure
+    @param Element The Element to add
+
+    @discussion
+    By default, add the new Node at the top-left-most position.
+    Perform a Left-to-Right Level-Order search for the first Leaf Node, and
+    insert the Element at this location.
+
+    @todo
+    Add a configuration setting to change the default insertion location.
+
+    @see InsertElementAtNode()
+ */
+template <typename T> void AddElementToTree(tree_node *RootNode, const T &Element);
+
+/*! @brief Remove the given Element from the Tree
+
+    @param RootNode (mutate) The Root of the Tree
+    @param Element The Element to remove from the Tree
+    
+    @discussion
+    Finds the corresponding Node in the Tree which contains the Element, and
+    removes that Node from the Tree.
+
+    @see RemoveNodeFromTree()
+ */
+template <typename T> void RemoveElementFromTree(tree_node *RootNode, const T &Element);
+
+/*! @brief Swap the location of the Elements in the Tree
+
+    @param RootNode (mutate) The Root of the Tree
+    @param ElementOne The first Element to find
+    @param ElementTwo The second Element to find
+
+    @discussion
+    Swaps the Elements in each Node to the respective other.
+
+    @post
+    Any attributes of the Element which are properties of its location within
+    the Tree will need to be udpated in the calling scope after the swap.
+ */
+template <typename T> void SwapElementsInTree(tree_node *RootNode, const T &ElementOne, const T &ElementTwo);
+
+/*! @functiongroup Mutations */
+
+void RebalanceTree(tree_node *RootNode);
+void RotateTree(tree_node *RootNode, const rotation_target &Rotation);
+void FlipTree(tree_node *RootNode, const rotation_target &Rotation);
+void PreOrderMutation(tree_node *RootNode, void (*f)(tree_node *Node));
+void PostOrderMutation(tree_node *RootNode, void (*f)(tree_node *Node));
+void InOrderMutation(tree_node *RootNode, void (*f)(tree_node *Node));
+void LevelOrderMutation(tree_node *RootNode, void (*f)(tree_node *Node));
 
 #endif
